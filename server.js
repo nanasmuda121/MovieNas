@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+const movie = require('./lib/movie');
+const { trendingCache, detailCache } = require('./lib/cache');
+
 const trendingHandler = require('./api/trending');
 const searchHandler = require('./api/search');
 const detailHandler = require('./api/detail');
@@ -15,9 +18,124 @@ const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// API Endpoints
+// Configure EJS Template Engine for Server-Side Rendering (SSR)
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// ==========================================
+// 1. SSR FRONTEND ROUTES (Full HTML Source)
+// ==========================================
+
+// Homepage SSR
+app.get('/', async (req, res) => {
+  try {
+    const cacheKey = 'trending_1_30_id';
+    let items = trendingCache.get(cacheKey);
+
+    if (!items) {
+      items = await movie.trending(1, 30, 'id');
+      trendingCache.set(cacheKey, items);
+    }
+
+    const heroItem = items && items.length > 0 ? items[0] : null;
+    res.render('index', {
+      trending: items,
+      heroItem,
+    });
+  } catch (err) {
+    console.error('[SSR Homepage Error]:', err.message);
+    res.render('index', { trending: [], heroItem: null });
+  }
+});
+
+// Search Page SSR
+app.get('/search', async (req, res) => {
+  try {
+    const query = (req.query.q || '').trim();
+    const type = parseInt(req.query.type, 10) || 0; // 0=All, 1=Movie, 2=Series
+
+    let results = [];
+    if (query) {
+      results = await movie.search(query, 1, 30, type, 'id');
+    } else {
+      // Default trending recommendation
+      const trending = await movie.trending(1, 24, 'id');
+      results = trending;
+      if (type === 1) results = results.filter((i) => i.typeLabel === 'Movie' || i.subjectType === 1);
+      if (type === 2) results = results.filter((i) => i.typeLabel === 'Series' || i.subjectType === 2);
+    }
+
+    res.render('search', {
+      query,
+      currentType: type,
+      results,
+    });
+  } catch (err) {
+    console.error('[SSR Search Error]:', err.message);
+    res.render('search', { query: req.query.q || '', currentType: 0, results: [] });
+  }
+});
+
+// Detail Page SSR
+app.get(['/detail/:path', '/detail'], async (req, res) => {
+  try {
+    const detailPath = req.params.path || req.query.path || req.query.slug || req.query.detailPath;
+    if (!detailPath) return res.redirect('/');
+
+    const cacheKey = `detail_${detailPath}_id`;
+    let detailData = detailCache.get(cacheKey);
+
+    if (!detailData) {
+      detailData = await movie.detail(detailPath, 'id');
+      detailCache.set(cacheKey, detailData);
+    }
+
+    res.render('detail', {
+      detail: detailData,
+    });
+  } catch (err) {
+    console.error('[SSR Detail Error]:', err.message);
+    res.status(404).send(`Detail tidak ditemukan: ${err.message}`);
+  }
+});
+
+// Player Page SSR
+app.get('/player', async (req, res) => {
+  try {
+    const detailPath = req.query.path || req.query.slug;
+    if (!detailPath) return res.redirect('/');
+
+    const subjectId = req.query.id || req.query.subjectId || '';
+    const season = parseInt(req.query.se || req.query.season || '0', 10);
+    const episode = parseInt(req.query.ep || req.query.episode || '0', 10);
+
+    const [streamResult, detailResult] = await Promise.allSettled([
+      movie.stream(detailPath, subjectId, season, episode, 'id'),
+      movie.detail(detailPath, 'id'),
+    ]);
+
+    const stream = streamResult.status === 'fulfilled' ? streamResult.value : null;
+    const detail = detailResult.status === 'fulfilled' ? detailResult.value : null;
+
+    if (!stream || !stream.streams || stream.streams.length === 0) {
+      return res.status(404).send('Stream video tidak ditemukan untuk konten ini.');
+    }
+
+    res.render('player', {
+      stream,
+      detail,
+    });
+  } catch (err) {
+    console.error('[SSR Player Error]:', err.message);
+    res.status(500).send(`Gagal memuat player: ${err.message}`);
+  }
+});
+
+// ==========================================
+// 2. REST API ENDPOINTS (For Client-side & Proxy)
+// ==========================================
 app.all('/api/trending', trendingHandler);
 app.all('/api/search', searchHandler);
 app.all('/api/detail/:detailPath', (req, res) => {
@@ -30,37 +148,17 @@ app.all('/api/captions', captionsHandler);
 app.all('/api/proxy-stream', proxyStreamHandler);
 app.all('/api/subtitle', subtitleHandler);
 
-// Clean frontend routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/search', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'search.html'));
-});
-
-app.get(['/detail', '/detail/:path'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'detail.html'));
-});
-
-app.get('/player', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'player.html'));
-});
-
 // Fallback for 404
 app.use((req, res) => {
-  if (req.accepts('html')) {
-    return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
-  }
-  res.status(404).json({ status: false, error: 'Not Found' });
+  res.status(404).redirect('/');
 });
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(`🎬 MovieNas — Streaming Movie & Series Platform`);
+    console.log(`🎬 MovieNas — Streaming Movie & Series Platform (SSR)`);
     console.log(`📡 Local Server: http://localhost:${PORT}`);
-    console.log(`⚡ API Base:     http://localhost:${PORT}/api`);
+    console.log(`⚡ View Source:  100% Real Semantic HTML (No Empty Chunks)`);
     console.log(`====================================================`);
   });
 }

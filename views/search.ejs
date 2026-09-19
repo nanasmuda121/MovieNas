@@ -1,0 +1,80 @@
+<%- include('partials/header', { 
+  pageTitle: query ? `Hasil Pencarian "${query}" — MovieNas` : 'Pencarian Film & Series — MovieNas',
+  metaDescription: query ? `Nonton film & series terkait "${query}" dengan subtitle Indonesia di MovieNas.` : 'Cari ribuan film & series sub Indo kualitas HD.',
+  activeNav: currentType === 1 ? 'movies' : (currentType === 2 ? 'series' : '')
+}) %>
+
+<!-- Search Main Container -->
+<main class="search-page-container">
+
+  <!-- Search Header & Input -->
+  <div class="search-header-bar">
+    <form action="/search" method="GET" class="search-input-large-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon-lg"></i>
+      <input
+        type="text"
+        name="q"
+        id="mainSearchInput"
+        class="search-input-large"
+        placeholder="Ketik judul film atau serial (contoh: Avatar, Spider-Man, John Wick, Wednesday)..."
+        value="<%= typeof query !== 'undefined' ? query : '' %>"
+        autofocus
+      />
+      <input type="hidden" name="type" id="searchTypeInput" value="<%= currentType %>" />
+      <% if (query) { %>
+        <a href="/search?type=<%= currentType %>" class="search-clear-btn" style="display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-xmark"></i>
+        </a>
+      <% } %>
+    </form>
+
+    <!-- Filter Pills -->
+    <div class="filter-pills">
+      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=0" class="filter-pill <%= currentType === 0 ? 'active' : '' %>">
+        Semua Kategori
+      </a>
+      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=1" class="filter-pill <%= currentType === 1 ? 'active' : '' %>">
+        <i class="fa-solid fa-film"></i> Film (Movie)
+      </a>
+      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=2" class="filter-pill <%= currentType === 2 ? 'active' : '' %>">
+        <i class="fa-solid fa-tv"></i> Serial TV (Series)
+      </a>
+    </div>
+
+    <!-- Result Stat Text -->
+    <div class="text-sm text-slate-400 font-medium" style="min-height: 20px;">
+      <% if (query) { %>
+        <% if (results && results.length > 0) { %>
+          Menemukan <strong><%= results.length %></strong> hasil pencarian untuk "<strong><%= query %></strong>":
+        <% } else { %>
+          Tidak ada hasil ditemukan untuk "<strong><%= query %></strong>".
+        <% } %>
+      <% } else { %>
+        Menampilkan rekomendasi trending populer:
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Results Grid (Server-Side Rendered Real HTML!) -->
+  <% if (results && results.length > 0) { %>
+    <div class="responsive-grid">
+      <% results.forEach(function(item) { %>
+        <%- include('partials/card', { item: item }) %>
+      <% }); %>
+    </div>
+  <% } else if (query) { %>
+    <!-- Empty State -->
+    <div style="text-align: center; padding: 4rem 1rem;">
+      <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;">
+        <i class="fa-solid fa-film"></i>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Tidak Ada Hasil Ditemukan</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
+        Coba periksa kembali ejaan judul film, gunakan kata kunci yang lebih ringkas, atau pilih kategori lain.
+      </p>
+    </div>
+  <% } %>
+
+</main>
+
+<%- include('partials/footer') %>

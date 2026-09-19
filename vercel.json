@@ -1,6 +1,11 @@
 {
   "version": 2,
   "functions": {
+    "api/index.js": {
+      "includeFiles": "views/**",
+      "maxDuration": 60,
+      "memory": 1024
+    },
     "api/proxy-stream.js": {
       "maxDuration": 60,
       "memory": 1024
@@ -15,16 +20,12 @@
       "destination": "/api/detail?detailPath=:detailPath"
     },
     {
-      "source": "/search",
-      "destination": "/search.html"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
-      "source": "/detail",
-      "destination": "/detail.html"
-    },
-    {
-      "source": "/player",
-      "destination": "/player.html"
+      "source": "/(.*)",
+      "destination": "/api/index.js"
     }
   ],
   "headers": [
