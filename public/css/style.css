@@ -1581,17 +1581,56 @@ body {
 }
 
 /* ==========================================================================
-   RESPONSIVE
+   RESPONSIVE — ULTRA REFINED MOBILE & TABLET LAYOUTS
    ========================================================================== */
+
+/* TABLET (max-width: 1024px) */
 @media (max-width: 1024px) {
+  .navbar { padding: 1rem 2rem; }
+  .hero { height: 75vh; padding: 4rem 2.5rem 5rem; }
   .hero-title { font-size: 2.6rem; }
-  .detail-content-wrap { grid-template-columns: 250px 1fr; gap: 2.2rem; }
+  .main-container { padding: 0 2rem 3rem; }
+  .detail-content-wrap { grid-template-columns: 240px 1fr; gap: 2.5rem; }
   .detail-title { font-size: 2.3rem; }
+  .player-page-container { padding: 0 1.5rem; }
 }
 
+/* MOBILE PHONES (max-width: 768px) */
 @media (max-width: 768px) {
-  .navbar { padding: 0.85rem 1.4rem; }
-  .nav-links { display: none; }
+  /* Prevent any horizontal overflow */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* 1. TOP NAVBAR ON MOBILE */
+  .navbar {
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .nav-left {
+    gap: 0.75rem;
+  }
+
+  .brand-logo {
+    font-size: 1.15rem;
+    gap: 0.45rem;
+  }
+
+  .brand-logo .logo-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  /* Hide desktop nav links */
+  .nav-links {
+    display: none;
+  }
+
+  /* Mobile menu dropdown */
   .nav-links.mobile-open {
     display: flex;
     flex-direction: column;
@@ -1600,25 +1639,512 @@ body {
     left: 0;
     right: 0;
     background: var(--bg-surface);
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border-subtle);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.95);
+    gap: 0.85rem;
   }
-  .menu-toggle { display: block; }
-  .search-box input { width: 150px; }
-  .search-box input:focus { width: 210px; }
-  
-  .hero { height: 74vh; padding: 2.5rem 1.5rem 4.5rem; }
-  .hero-title { font-size: 2rem; }
 
-  .main-container { padding: 0 1.4rem 3rem; }
-  .card-poster { flex: 0 0 150px; width: 150px; }
+  .nav-right {
+    gap: 0.5rem;
+  }
 
-  .detail-header-backdrop { padding: 6.5rem 1.5rem 3.5rem; }
-  .detail-content-wrap { grid-template-columns: 1fr; gap: 1.8rem; }
-  .detail-poster-card { max-width: 230px; margin: 0 auto; }
-  .detail-title { font-size: 1.9rem; text-align: center; }
+  /* Compact mobile search box */
+  .search-box {
+    flex: 1;
+    max-width: 130px;
+  }
 
-  .responsive-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-  .stream-toolbar-section { flex-direction: column; align-items: flex-start; }
+  .search-box input {
+    width: 100%;
+    padding: 0.45rem 0.75rem 0.45rem 2rem;
+    font-size: 0.8rem;
+  }
+
+  .search-box input:focus {
+    width: 100%;
+  }
+
+  .search-box i.search-icon {
+    left: 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  /* Hide redundant watchlist button in top navbar on mobile (already in bottom dock!) */
+  .navbar .watchlist-btn-badge {
+    display: none !important;
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    font-size: 1.15rem;
+  }
+
+  /* 2. HERO BANNER ON MOBILE */
+  .hero {
+    height: auto;
+    min-height: 520px;
+    padding: 5.5rem 1.15rem 4rem;
+    background-position: center top;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-badge-row {
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .badge {
+    font-size: 0.68rem;
+    padding: 0.22rem 0.55rem;
+  }
+
+  .hero-title {
+    font-size: 1.85rem;
+    line-height: 1.18;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-genres {
+    gap: 0.35rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .genre-chip {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+  }
+
+  .hero-desc {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    -webkit-line-clamp: 2;
+    margin-bottom: 1.35rem;
+  }
+
+  /* Action buttons: Putar Sekarang full width, other two 50% side-by-side */
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .hero-actions > a:first-child {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .hero-actions > a:nth-child(2),
+  .hero-actions > button {
+    width: 100%;
+    padding: 0.7rem 0.6rem;
+    font-size: 0.82rem;
+    gap: 0.4rem;
+  }
+
+  /* 3. MAIN CONTAINER & SECTIONS */
+  .main-container {
+    padding: 0 1rem 3rem;
+  }
+
+  .content-section {
+    padding: 1.8rem 0;
+  }
+
+  .section-header {
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.18rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.75rem;
+  }
+
+  /* Hide carousel arrow buttons on mobile (native touch swipe) */
+  .carousel-controls {
+    display: none;
+  }
+
+  .carousel-track {
+    gap: 0.85rem;
+    padding: 0.4rem 0 1.2rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Posters on mobile: 135px width, perfect 2.5 cards visible swipe cue */
+  .card-poster {
+    flex: 0 0 135px;
+    width: 135px;
+    border-radius: 10px;
+  }
+
+  .card-poster:hover {
+    transform: translateY(-4px); /* subtle lift on mobile */
+  }
+
+  .card-info {
+    padding: 0.65rem 0.55rem;
+  }
+
+  .card-title {
+    font-size: 0.82rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-meta {
+    font-size: 0.7rem;
+  }
+
+  .card-hover-play {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  /* Continue watching card on mobile */
+  .cw-card {
+    flex: 0 0 220px;
+    width: 220px;
+  }
+
+  .cw-info {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .cw-title {
+    font-size: 0.82rem;
+  }
+
+  .cw-episode {
+    font-size: 0.72rem;
+  }
+
+  /* 4. SEARCH PAGE ON MOBILE */
+  .search-page-container {
+    padding-top: 4.5rem;
+  }
+
+  .search-input-large-wrap {
+    margin-bottom: 1.25rem;
+  }
+
+  .search-input-large {
+    font-size: 0.95rem;
+    padding: 0.85rem 1rem 0.85rem 2.8rem;
+  }
+
+  .search-icon-lg {
+    left: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .filter-pills {
+    gap: 0.45rem;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-pill {
+    padding: 0.4rem 0.95rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  /* Grid on mobile: 2 cards per row */
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* 5. DETAIL PAGE ON MOBILE */
+  .detail-header-backdrop {
+    padding: 5.5rem 1rem 2.5rem;
+    min-height: 460px;
+    background-position: center top;
+  }
+
+  .detail-content-wrap {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .detail-poster-col {
+    display: flex;
+    justify-content: center;
+  }
+
+  .detail-poster-card {
+    max-width: 190px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .detail-poster-actions {
+    padding: 0.85rem;
+    gap: 0.55rem;
+  }
+
+  .detail-poster-actions .btn {
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .detail-info-col {
+    gap: 1rem;
+  }
+
+  .detail-title {
+    font-size: 1.65rem;
+    text-align: center;
+    letter-spacing: -0.5px;
+  }
+
+  .detail-info-col .hero-badge-row {
+    justify-content: center;
+  }
+
+  .detail-info-col .hero-genres {
+    justify-content: center;
+  }
+
+  .detail-synopsis-title {
+    font-size: 1rem;
+  }
+
+  .detail-synopsis-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+
+  .seasons-section {
+    padding: 0 1rem;
+  }
+
+  .season-tabs {
+    gap: 0.45rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .season-tab {
+    padding: 0.45rem 1.1rem;
+    font-size: 0.82rem;
+  }
+
+  .episodes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .episode-card {
+    padding: 0.75rem 0.35rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .episode-number {
+    font-size: 1.15rem;
+  }
+
+  .episode-label {
+    font-size: 0.65rem;
+  }
+
+  /* 6. PLAYER PAGE ON MOBILE */
+  .player-page-container {
+    margin: 4.2rem auto 2rem;
+    padding: 0 0.75rem;
+  }
+
+  .player-top-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .player-back-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    gap: 0.35rem;
+  }
+
+  .player-main-title {
+    font-size: 0.95rem;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player-sub-title {
+    font-size: 0.7rem;
+  }
+
+  .player-top-bar .btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .native-player-container {
+    border-radius: var(--radius-sm);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9);
+  }
+
+  .stream-toolbar-card {
+    padding: 1rem;
+    margin-top: 1rem;
+    gap: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  .stream-toolbar-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+
+  .toolbar-label {
+    min-width: 100%;
+    font-size: 0.78rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .quality-pills-wrap,
+  .sub-pills-wrap {
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .quality-pill,
+  .sub-pill {
+    padding: 0.38rem 0.75rem;
+    font-size: 0.76rem;
+  }
+
+  .series-nav-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .series-nav-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .series-nav-title {
+    font-size: 1rem;
+  }
+
+  .series-nav-header > div:last-child {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .series-nav-header > div:last-child .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.55rem;
+    font-size: 0.8rem;
+  }
+
+  .series-ep-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.4rem;
+    max-height: 220px;
+  }
+
+  .ep-badge-btn {
+    height: 44px;
+    border-radius: 8px;
+  }
+
+  .ep-badge-num {
+    font-size: 1rem;
+  }
+
+  .ep-badge-lbl {
+    font-size: 0.58rem;
+  }
+
+  /* 7. FLOATING BOTTOM DOCK ON MOBILE */
+  .bottom-nav-dock {
+    bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 1.5rem);
+    max-width: 350px;
+  }
+
+  .bottom-nav-inner {
+    justify-content: space-around;
+    padding: 0.35rem 0.4rem;
+  }
+
+  .bottom-nav-item {
+    min-width: unset;
+    flex: 1;
+    padding: 0.35rem 0.4rem;
+  }
+
+  .bottom-nav-icon {
+    font-size: 1.1rem;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.68rem;
+  }
+
+  /* 8. FOOTER ON MOBILE */
+  .footer {
+    padding: 2.5rem 1rem 6rem;
+  }
+
+  .footer-top,
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+}
+
+/* EXTRA SMALL PHONES (max-width: 380px) */
+@media (max-width: 380px) {
+  .brand-logo span {
+    font-size: 1rem;
+  }
+
+  .search-box {
+    max-width: 105px;
+  }
+
+  .hero-title {
+    font-size: 1.55rem;
+  }
+
+  .card-poster {
+    flex: 0 0 120px;
+    width: 120px;
+  }
+
+  .series-ep-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }

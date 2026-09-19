@@ -29,7 +29,7 @@
   <div class="player-top-bar">
     <a href="/detail/<%= encodeURIComponent(stream.detailPath) %>" class="player-back-btn">
       <i class="fa-solid fa-arrow-left"></i>
-      <span>Kembali ke Detail</span>
+      <span class="back-text">Kembali</span>
     </a>
 
     <div class="player-title-info">
@@ -40,7 +40,7 @@
     </div>
 
     <div>
-      <button class="btn btn-secondary" style="padding: 0.5rem 1.1rem; font-size: 0.85rem;"
+      <button class="btn btn-secondary player-watchlist-btn"
         data-path="<%= stream.detailPath %>"
         data-title="<%= stream.title %>"
         data-cover="<%= detail ? detail.coverUrl : '' %>"
@@ -48,7 +48,7 @@
         data-rating="<%= detail ? detail.imdbRating : '8.0' %>"
         data-year="<%= detail ? detail.year : '2024' %>"
         onclick="toggleWatchlistFromButton(this)">
-        <i class="fa-solid fa-bookmark"></i> Watchlist
+        <i class="fa-solid fa-bookmark"></i> <span class="btn-text">Watchlist</span>
       </button>
     </div>
   </div>
