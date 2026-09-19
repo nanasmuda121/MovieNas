@@ -2,7 +2,8 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Disable Zoom In and Zoom Out as requested -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
   <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'MovieNas — Nonton Film & Series Subtitle Indonesia Gratis' %></title>
   <meta name="description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Streaming film & series kualitas 360p-1080p dengan subtitle Indonesia lengkap tanpa buffering di MovieNas.' %>" />
   
@@ -26,11 +27,15 @@
 </head>
 <body>
 
+  <!-- Ambient Animated Lighting -->
+  <div class="ambient-glow ambient-glow-1"></div>
+  <div class="ambient-glow ambient-glow-2"></div>
+
   <!-- Top Navbar -->
   <header class="navbar">
     <div class="nav-left">
       <a href="/" class="brand-logo">
-        <div class="logo-icon">
+        <div class="logo-icon glow-pulse">
           <i class="fa-solid fa-play"></i>
         </div>
         <span>Movie<span class="logo-tag">Nas</span></span>
@@ -40,7 +45,7 @@
         <li><a href="/" class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'home' ? 'active' : '' %>"><i class="fa-solid fa-house"></i> Beranda</a></li>
         <li><a href="/search?type=1" class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'movies' ? 'active' : '' %>"><i class="fa-solid fa-film"></i> Film</a></li>
         <li><a href="/search?type=2" class="nav-link <%= typeof activeNav !== 'undefined' && activeNav === 'series' ? 'active' : '' %>"><i class="fa-solid fa-tv"></i> Series</a></li>
-        <li><a href="/#trending" class="nav-link"><i class="fa-solid fa-fire"></i> Trending</a></li>
+        <li><a href="/#trending" class="nav-link"><i class="fa-solid fa-fire text-amber-400"></i> Trending</a></li>
         <li><a href="/#watchlist" class="nav-link"><i class="fa-solid fa-bookmark"></i> Watchlist</a></li>
       </ul>
     </div>
