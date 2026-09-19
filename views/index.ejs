@@ -99,89 +99,57 @@
     </div>
   </section>
 
-  <!-- Trending Carousel (Server-Side Rendered Real HTML!) -->
-  <section class="content-section" id="trending">
-    <div class="section-header">
-      <div class="section-title-wrap">
-        <div class="section-title-bar"></div>
-        <h2 class="section-title">Trending Sekarang</h2>
-        <span class="section-subtitle">Paling banyak ditonton</span>
+  <!-- Recommendation Carousels (Fetched directly from themoviebox.xyz/id) -->
+  <% if (typeof categories !== 'undefined' && categories && categories.length > 0) { %>
+    <% categories.forEach(function(cat, cIdx) { %>
+      <section class="content-section" id="<%= cIdx === 0 ? 'trending' : ('cat-' + cIdx) %>">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-title-bar"></div>
+            <h2 class="section-title"><%= cat.title %></h2>
+            <span class="section-subtitle">Rekomendasi Pilihan</span>
+          </div>
+          <div class="carousel-controls">
+            <button class="carousel-btn" onclick="document.getElementById('track-cat-<%= cIdx %>').scrollBy({ left: -450, behavior: 'smooth' })" title="Geser Kiri">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button class="carousel-btn" onclick="document.getElementById('track-cat-<%= cIdx %>').scrollBy({ left: 450, behavior: 'smooth' })" title="Geser Kanan">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <div class="carousel-track" id="track-cat-<%= cIdx %>">
+          <% (cat.items || []).forEach(function(item) { %>
+            <%- include('partials/card', { item: item }) %>
+          <% }); %>
+        </div>
+      </section>
+    <% }); %>
+  <% } else if (typeof trending !== 'undefined' && trending && trending.length > 0) { %>
+    <!-- Fallback if categories are not available -->
+    <section class="content-section" id="trending">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <div class="section-title-bar"></div>
+          <h2 class="section-title">Trending Sekarang</h2>
+          <span class="section-subtitle">Paling banyak ditonton</span>
+        </div>
+        <div class="carousel-controls">
+          <button class="carousel-btn" onclick="document.getElementById('trendingTrack').scrollBy({ left: -450, behavior: 'smooth' })" title="Geser Kiri">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button class="carousel-btn" onclick="document.getElementById('trendingTrack').scrollBy({ left: 450, behavior: 'smooth' })" title="Geser Kanan">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
       </div>
-      <div class="carousel-controls">
-        <button class="carousel-btn" onclick="document.getElementById('trendingTrack').scrollBy({ left: -450, behavior: 'smooth' })" title="Geser Kiri">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button class="carousel-btn" onclick="document.getElementById('trendingTrack').scrollBy({ left: 450, behavior: 'smooth' })" title="Geser Kanan">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-      </div>
-    </div>
-    <div class="carousel-track" id="trendingTrack">
-      <% if (trending && trending.length > 0) { %>
-        <% trending.slice(0, 15).forEach(function(item) { %>
+      <div class="carousel-track" id="trendingTrack">
+        <% trending.forEach(function(item) { %>
           <%- include('partials/card', { item: item }) %>
         <% }); %>
-      <% } else { %>
-        <p class="text-sm text-slate-500 py-4">Tidak ada data trending.</p>
-      <% } %>
-    </div>
-  </section>
-
-  <!-- Movies Carousel (Server-Side Rendered Real HTML!) -->
-  <section class="content-section" id="movies">
-    <div class="section-header">
-      <div class="section-title-wrap">
-        <div class="section-title-bar"></div>
-        <h2 class="section-title">Film Populer</h2>
-        <span class="section-subtitle">Box Office &amp; Blockbuster</span>
       </div>
-      <div class="carousel-controls">
-        <button class="carousel-btn" onclick="document.getElementById('moviesTrack').scrollBy({ left: -450, behavior: 'smooth' })" title="Geser Kiri">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button class="carousel-btn" onclick="document.getElementById('moviesTrack').scrollBy({ left: 450, behavior: 'smooth' })" title="Geser Kanan">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-      </div>
-    </div>
-    <div class="carousel-track" id="moviesTrack">
-      <% 
-        const movies = (trending || []).filter(function(i) { return i.typeLabel === 'Movie' || i.subjectType === 1; });
-        const displayMovies = movies.length > 0 ? movies : (trending || []).slice(5, 18);
-      %>
-      <% displayMovies.forEach(function(item) { %>
-        <%- include('partials/card', { item: item }) %>
-      <% }); %>
-    </div>
-  </section>
-
-  <!-- Series Carousel (Server-Side Rendered Real HTML!) -->
-  <section class="content-section" id="series">
-    <div class="section-header">
-      <div class="section-title-wrap">
-        <div class="section-title-bar"></div>
-        <h2 class="section-title">Serial TV &amp; Drama</h2>
-        <span class="section-subtitle">Episode Lengkap Tiap Season</span>
-      </div>
-      <div class="carousel-controls">
-        <button class="carousel-btn" onclick="document.getElementById('seriesTrack').scrollBy({ left: -450, behavior: 'smooth' })" title="Geser Kiri">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button class="carousel-btn" onclick="document.getElementById('seriesTrack').scrollBy({ left: 450, behavior: 'smooth' })" title="Geser Kanan">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-      </div>
-    </div>
-    <div class="carousel-track" id="seriesTrack">
-      <% 
-        const series = (trending || []).filter(function(i) { return i.typeLabel === 'Series' || i.subjectType === 2; });
-        const displaySeries = series.length > 0 ? series : (trending || []).slice(10, 25);
-      %>
-      <% displaySeries.forEach(function(item) { %>
-        <%- include('partials/card', { item: item }) %>
-      <% }); %>
-    </div>
-  </section>
+    </section>
+  <% } %>
 
 </main>
 

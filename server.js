@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 
 const movie = require('./lib/movie');
-const { trendingCache, detailCache } = require('./lib/cache');
+const { trendingCache, detailCache, homeCache } = require('./lib/cache');
 
 const trendingHandler = require('./api/trending');
 const searchHandler = require('./api/search');
@@ -28,25 +28,46 @@ app.set('views', path.join(__dirname, 'views'));
 // 1. SSR FRONTEND ROUTES (Full HTML Source)
 // ==========================================
 
-// Homepage SSR
+// Homepage SSR with rich multi-category recommendations from themoviebox.xyz/id
 app.get('/', async (req, res) => {
   try {
-    const cacheKey = 'trending_1_30_id';
-    let items = trendingCache.get(cacheKey);
+    const cacheKey = 'home_sections_id';
+    let homeData = homeCache.get(cacheKey);
 
-    if (!items) {
-      items = await movie.trending(1, 30, 'id');
-      trendingCache.set(cacheKey, items);
+    if (!homeData) {
+      try {
+        homeData = await movie.home('id');
+        if (homeData && homeData.categories && homeData.categories.length > 0) {
+          homeCache.set(cacheKey, homeData);
+        }
+      } catch (homeErr) {
+        console.warn('[SSR Homepage] movie.home failed, falling back to trending:', homeErr.message);
+        const trending = await movie.trending(1, 30, 'id');
+        homeData = {
+          heroItem: trending[0] || null,
+          categories: [
+            {
+              title: 'Trending Sekarang',
+              items: trending,
+            },
+          ],
+        };
+      }
     }
 
-    const heroItem = items && items.length > 0 ? items[0] : null;
+    let heroItem = homeData.heroItem;
+    if (!heroItem && homeData.categories && homeData.categories.length > 0) {
+      heroItem = homeData.categories[0].items[0] || null;
+    }
+
     res.render('index', {
-      trending: items,
       heroItem,
+      categories: homeData.categories || [],
+      trending: (homeData.categories && homeData.categories[0]?.items) || [],
     });
   } catch (err) {
     console.error('[SSR Homepage Error]:', err.message);
-    res.render('index', { trending: [], heroItem: null });
+    res.render('index', { heroItem: null, categories: [], trending: [] });
   }
 });
 
