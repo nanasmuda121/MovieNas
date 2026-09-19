@@ -1332,6 +1332,19 @@ button, input, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.player-ep-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ep-nav-btn {
+  padding: 0.55rem 1.15rem;
+  font-size: 0.85rem;
 }
 
 .series-nav-title {
@@ -1690,6 +1703,12 @@ body {
     min-height: 520px;
     padding: 5.5rem 1.15rem 4rem;
     background-position: center top;
+  }
+
+  .hero-overlay {
+    background: 
+      linear-gradient(to top, #060609 0%, rgba(6, 6, 9, 0.94) 40%, rgba(6, 6, 9, 0.6) 75%, rgba(6, 6, 9, 0.35) 100%),
+      linear-gradient(to bottom, rgba(6, 6, 9, 0.85) 0%, transparent 30%);
   }
 
   .hero-content {

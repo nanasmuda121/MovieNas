@@ -148,14 +148,14 @@
           <p class="series-nav-sub">Klik episode untuk langsung memutar kelanjutan serial</p>
         </div>
 
-        <div style="display: flex; gap: 0.8rem;">
+        <div class="player-ep-nav-controls">
           <% if (prevEp) { %>
-            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= prevEp %>/<%= stream.season %>" class="btn btn-secondary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= prevEp %>/<%= stream.season %>" class="btn btn-secondary ep-nav-btn">
               <i class="fa-solid fa-chevron-left"></i> Ep <%= prevEp %>
             </a>
           <% } %>
           <% if (nextEp) { %>
-            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= nextEp %>/<%= stream.season %>" class="btn btn-primary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= nextEp %>/<%= stream.season %>" class="btn btn-primary ep-nav-btn">
               Ep <%= nextEp %> <i class="fa-solid fa-chevron-right"></i>
             </a>
           <% } %>
