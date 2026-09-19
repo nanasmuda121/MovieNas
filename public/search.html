@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pencarian Film &amp; Series — MovieNas</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍿</text></svg>" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="nav-left">
+      <a href="/" class="brand-logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-play"></i>
+        </div>
+        <span>Movie<span class="logo-tag">Nas</span></span>
+      </a>
+
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/" class="nav-link"><i class="fa-solid fa-house"></i> Beranda</a></li>
+        <li><a href="/search.html?type=1" class="nav-link" id="navFilterMovie"><i class="fa-solid fa-film"></i> Film</a></li>
+        <li><a href="/search.html?type=2" class="nav-link" id="navFilterSeries"><i class="fa-solid fa-tv"></i> Series</a></li>
+        <li><a href="/#trending" class="nav-link"><i class="fa-solid fa-fire"></i> Trending</a></li>
+        <li><a href="/#watchlist" class="nav-link"><i class="fa-solid fa-bookmark"></i> Watchlist</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-right">
+      <a href="/#watchlist" class="watchlist-btn-badge" title="Daftar Tontonan">
+        <i class="fa-solid fa-bookmark"></i>
+        <span class="badge-count" style="display: none;">0</span>
+      </a>
+
+      <button class="menu-toggle" id="menuToggleBtn" aria-label="Toggle Menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search Main Container -->
+  <main class="search-page-container">
+
+    <!-- Search Header & Input -->
+    <div class="search-header-bar">
+      <div class="search-input-large-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon-lg"></i>
+        <input
+          type="text"
+          id="mainSearchInput"
+          class="search-input-large"
+          placeholder="Ketik judul film atau serial (contoh: Avatar, Spider-Man, John Wick, Wednesday)..."
+          autofocus
+        />
+        <button class="search-clear-btn" id="searchClearBtn" style="display: none;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="filter-pills">
+        <button class="filter-pill active" data-type="0">Semua Kategori</button>
+        <button class="filter-pill" data-type="1"><i class="fa-solid fa-film"></i> Film (Movie)</button>
+        <button class="filter-pill" data-type="2"><i class="fa-solid fa-tv"></i> Serial TV (Series)</button>
+      </div>
+
+      <!-- Result Stat Text -->
+      <div id="searchStatus" class="text-sm text-slate-400 font-medium" style="min-height: 20px;">
+        Ketik kata kunci untuk mulai mencari...
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div id="resultsGrid" class="responsive-grid">
+      <!-- Injected by search.js -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" style="display: none; text-align: center; padding: 4rem 1rem;">
+      <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;">
+        <i class="fa-solid fa-film"></i>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Tidak Ada Hasil Ditemukan</h3>
+      <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
+        Coba gunakan kata kunci yang lebih umum, periksa ejaan judul, atau ganti filter kategori.
+      </p>
+    </div>
+
+    <!-- Load More Button -->
+    <div id="loadMoreWrap" style="text-align: center; margin-top: 3rem; display: none;">
+      <button id="loadMoreBtn" class="btn btn-secondary" style="padding: 0.8rem 2.5rem;">
+        <i class="fa-solid fa-arrow-down"></i> Muat Lebih Banyak
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="brand-logo" style="font-size: 1.15rem;">
+          <div class="logo-icon" style="width: 28px; height: 28px; font-size: 0.8rem;">
+            <i class="fa-solid fa-play"></i>
+          </div>
+          <span>Movie<span class="logo-tag">Nas</span></span>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 MovieNas. Cari dan tonton film favoritmu tanpa batas.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/search.js"></script>
+</body>
+</html>

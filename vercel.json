@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "functions": {
+    "api/proxy-stream.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/detail/:detailPath",
+      "destination": "/api/detail?detailPath=:detailPath"
+    },
+    {
+      "source": "/search",
+      "destination": "/search.html"
+    },
+    {
+      "source": "/detail",
+      "destination": "/detail.html"
+    },
+    {
+      "source": "/player",
+      "destination": "/player.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Range" },
+        { "key": "Access-Control-Expose-Headers", "value": "Content-Range, Content-Length, Accept-Ranges" }
+      ]
+    }
+  ]
+}
