@@ -4,17 +4,28 @@
   const pageTitle = isSeries 
     ? `Nonton ${stream.title} S${stream.season} E${stream.episode} — MovieNas` 
     : `Nonton ${stream.title} Sub Indo — MovieNas`;
+
+  let nextEp = null;
+  let prevEp = null;
+  let episodes = [1];
+  if (isSeries && detail && detail.resource && detail.resource.seasons) {
+    const curSeasonObj = detail.resource.seasons.find(s => s.seasonNumber === stream.season) || detail.resource.seasons[0];
+    episodes = curSeasonObj ? (curSeasonObj.allEpisodes || [1]) : [1];
+    const curIdx = episodes.indexOf(stream.episode);
+    prevEp = curIdx > 0 ? episodes[curIdx - 1] : null;
+    nextEp = curIdx < episodes.length - 1 ? episodes[curIdx + 1] : null;
+  }
 %>
 <%- include('partials/header', { 
   pageTitle: pageTitle,
-  metaDescription: `Nonton streaming direct ${stream.title} kualitas ${bestStream ? bestStream.quality : 'HD'} dengan subtitle Indonesia di MovieNas.`,
+  metaDescription: `Nonton streaming ${stream.title} kualitas ${bestStream ? bestStream.quality : 'HD'} subtitle Indonesia di MovieNas.`,
   activeNav: ''
 }) %>
 
 <!-- Player Page Container -->
 <main class="player-page-container">
 
-  <!-- Top Bar in Player -->
+  <!-- Top Navigation Bar -->
   <div class="player-top-bar">
     <a href="/detail/<%= encodeURIComponent(stream.detailPath) %>" class="player-back-btn">
       <i class="fa-solid fa-arrow-left"></i>
@@ -22,14 +33,14 @@
     </a>
 
     <div class="player-title-info">
-      <h2 class="player-main-title"><%= stream.title %></h2>
+      <h1 class="player-main-title"><%= stream.title %></h1>
       <p class="player-sub-title">
         <%= isSeries ? `Season ${stream.season} • Episode ${stream.episode}` : 'Film Layar Lebar' %>
       </p>
     </div>
 
-    <div style="display: flex; gap: 0.6rem; align-items: center;">
-      <button class="btn btn-secondary" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;"
+    <div>
+      <button class="btn btn-secondary" style="padding: 0.5rem 1.1rem; font-size: 0.85rem;"
         data-path="<%= stream.detailPath %>"
         data-title="<%= stream.title %>"
         data-cover="<%= detail ? detail.coverUrl : '' %>"
@@ -42,39 +53,16 @@
     </div>
   </div>
 
-  <!-- Stream & Controls Option Bar -->
-  <div class="player-mode-bar">
-    <div class="mode-toggle-group">
-      <span>Mode Putar:</span>
-      <button class="mode-pill active" id="modeCustomBtn" onclick="togglePlayerControlsMode('custom')">
-        <i class="fa-solid fa-sliders"></i> Kontrol Kustom
-      </button>
-      <button class="mode-pill" id="modeNativeBtn" onclick="togglePlayerControlsMode('native')">
-        <i class="fa-solid fa-play"></i> Native Player
-      </button>
-    </div>
-
-    <div class="mode-toggle-group">
-      <span>Jalur Stream:</span>
-      <button class="mode-pill active" id="streamModeDirectBtn" onclick="toggleStreamRoute('direct')">
-        <i class="fa-solid fa-bolt"></i> Direct MP4
-      </button>
-      <button class="mode-pill" id="streamModeProxyBtn" onclick="toggleStreamRoute('proxy')">
-        <i class="fa-solid fa-shield-halved"></i> Proxy
-      </button>
-    </div>
-  </div>
-
-  <!-- Direct HTML5 Video Player Container (NO IFRAME!) -->
-  <div class="video-wrapper" id="videoWrapper">
-    <!-- Direct native HTML5 video -->
+  <!-- NATIVE VIDEO PLAYER WRAPPER (Full Native Controls + PiP + Multi-Quality) -->
+  <div class="native-player-container">
     <video
       id="mainVideo"
-      class="video-element"
+      class="native-video"
+      controls
       playsinline
-      preload="metadata"
       crossOrigin="anonymous"
-      src="<%= bestStream ? bestStream.url : '' %>"
+      preload="metadata"
+      src="<%= bestStream ? (bestStream.proxyUrl || bestStream.url) : '' %>"
     >
       <% 
         const idSub = (stream.subtitles || []).find(s => s.languageCode.toLowerCase() === 'id' || s.languageName.toLowerCase().includes('indonesia'));
@@ -82,159 +70,107 @@
       %>
         <track kind="subtitles" label="<%= idSub.languageName %>" srclang="<%= idSub.languageCode %>" src="<%= idSub.vttUrl %>" default>
       <% } %>
+      <% (stream.subtitles || []).forEach(function(sub) { 
+        if (!idSub || sub.id !== idSub.id) {
+      %>
+        <track kind="subtitles" label="<%= sub.languageName %>" srclang="<%= sub.languageCode %>" src="<%= sub.vttUrl %>">
+      <% 
+        }
+      }); %>
     </video>
-
-    <!-- Center Big Play Button Overlay -->
-    <div class="player-center-play-btn glow-pulse" id="centerPlayBtn" title="Putar Video">
-      <i class="fa-solid fa-play"></i>
-    </div>
-
-    <!-- Spinner -->
-    <div class="player-loading-spinner" id="playerSpinner"></div>
-
-    <!-- Custom Control Bar -->
-    <div class="player-controls-bar" id="controlsBar">
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-buffer-bar" id="progressBuffer"></div>
-        <div class="progress-filled-bar" id="progressFilled"></div>
-        <div class="progress-thumb" id="progressThumb"></div>
-      </div>
-
-      <div class="controls-row">
-        <!-- Left Controls -->
-        <div class="controls-group-left">
-          <button class="ctrl-btn" id="playPauseBtn" title="Play / Pause (Spasi)">
-            <i class="fa-solid fa-play"></i>
-          </button>
-          <button class="ctrl-btn" id="rewindBtn" title="Mundur 10 Detik (←)">
-            <i class="fa-solid fa-rotate-left"></i>
-          </button>
-          <button class="ctrl-btn" id="forwardBtn" title="Maju 10 Detik (→)">
-            <i class="fa-solid fa-rotate-right"></i>
-          </button>
-
-          <div class="volume-wrapper">
-            <button class="ctrl-btn" id="volumeBtn" title="Mute / Unmute (M)">
-              <i class="fa-solid fa-volume-high"></i>
-            </button>
-            <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1" />
-          </div>
-
-          <div class="time-display">
-            <span id="currentTime">00:00</span> / <span id="durationTime">00:00</span>
-          </div>
-        </div>
-
-        <!-- Right Controls -->
-        <div class="controls-group-right">
-          <!-- Picture-in-Picture (PiP) Button -->
-          <button class="ctrl-btn" id="pipBtn" title="Picture-in-Picture (PiP)">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-          </button>
-
-          <!-- Speed Selector -->
-          <div class="player-select-wrap">
-            <button class="player-select-btn" id="speedBtn" title="Kecepatan Putar">
-              <span id="speedLabel">1x</span>
-              <i class="fa-solid fa-chevron-up" style="font-size: 0.65rem;"></i>
-            </button>
-            <div class="player-dropdown-menu" id="speedDropdown">
-              <div class="dropdown-item" data-speed="0.5">0.5x</div>
-              <div class="dropdown-item" data-speed="0.75">0.75x</div>
-              <div class="dropdown-item active" data-speed="1">1.0x (Normal)</div>
-              <div class="dropdown-item" data-speed="1.25">1.25x</div>
-              <div class="dropdown-item" data-speed="1.5">1.5x</div>
-              <div class="dropdown-item" data-speed="2">2.0x</div>
-            </div>
-          </div>
-
-          <!-- Subtitles Dropdown -->
-          <div class="player-select-wrap">
-            <button class="player-select-btn" id="subBtn" title="Subtitle / Takarir">
-              <i class="fa-solid fa-closed-captioning"></i>
-              <span id="subLabel">Sub: <%= idSub ? idSub.languageName : 'Nonaktif' %></span>
-              <i class="fa-solid fa-chevron-up" style="font-size: 0.65rem;"></i>
-            </button>
-            <div class="player-dropdown-menu" id="subDropdown">
-              <div class="dropdown-item <%= !idSub ? 'active' : '' %>" data-sub="off" onclick="switchSubtitleSSR('off')">Matikan Subtitle</div>
-              <% (stream.subtitles || []).forEach(function(sub) { 
-                const isCurrent = idSub && idSub.id === sub.id;
-              %>
-                <div class="dropdown-item <%= isCurrent ? 'active' : '' %>" data-sub="<%= sub.id %>" onclick="switchSubtitleSSR('<%= sub.id %>', '<%= sub.vttUrl %>', '<%= sub.languageName %>', '<%= sub.languageCode %>')">
-                  <span><%= sub.languageName %></span>
-                  <span class="text-xs text-slate-500 uppercase"><%= sub.languageCode %></span>
-                </div>
-              <% }); %>
-            </div>
-          </div>
-
-          <!-- Resolution Quality Dropdown -->
-          <div class="player-select-wrap">
-            <button class="player-select-btn" id="qualityBtn" title="Kualitas Video">
-              <i class="fa-solid fa-gear"></i>
-              <span id="qualityLabel"><%= bestStream ? bestStream.quality : 'Auto' %></span>
-              <i class="fa-solid fa-chevron-up" style="font-size: 0.65rem;"></i>
-            </button>
-            <div class="player-dropdown-menu" id="qualityDropdown">
-              <% stream.streams.forEach(function(s) { 
-                const isCurrent = bestStream && bestStream.quality === s.quality;
-              %>
-                <div class="dropdown-item <%= isCurrent ? 'active' : '' %>" data-quality="<%= s.quality %>" onclick="switchQualitySSR('<%= s.quality %>', '<%= s.url %>', '<%= s.proxyUrl %>')">
-                  <span><%= s.quality %></span>
-                  <% if (s.sizeFormatted) { %>
-                    <span class="text-xs text-slate-500"><%= s.sizeFormatted %></span>
-                  <% } %>
-                </div>
-              <% }); %>
-            </div>
-          </div>
-
-          <!-- Fullscreen -->
-          <button class="ctrl-btn" id="fullscreenBtn" title="Layar Penuh (F)">
-            <i class="fa-solid fa-expand"></i>
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Series Episodes Navigation (Server-Side Rendered!) -->
-  <% if (isSeries && detail && detail.resource && detail.resource.seasons) { 
-    const curSeasonObj = detail.resource.seasons.find(s => s.seasonNumber === stream.season) || detail.resource.seasons[0];
-    const episodes = curSeasonObj ? (curSeasonObj.allEpisodes || [1]) : [1];
-    const curIdx = episodes.indexOf(stream.episode);
-    const prevEp = curIdx > 0 ? episodes[curIdx - 1] : null;
-    const nextEp = curIdx < episodes.length - 1 ? episodes[curIdx + 1] : null;
-  %>
-    <div class="player-below-section">
-      <div class="series-navigation-bar">
+  <!-- STREAM SETTINGS BAR (Quality 360p-1080p & Subtitles) -->
+  <div class="stream-toolbar-card">
+    <!-- Quality Selector Pills -->
+    <div class="stream-toolbar-section">
+      <div class="toolbar-label">
+        <i class="fa-solid fa-sliders text-red-500"></i>
+        <span>Pilihan Kualitas:</span>
+      </div>
+      <div class="quality-pills-wrap" id="qualityPillsWrap">
+        <% stream.streams.forEach(function(s) { 
+          const isCurrent = bestStream && bestStream.quality === s.quality;
+          const streamUrl = s.proxyUrl || s.url;
+        %>
+          <button
+            class="quality-pill <%= isCurrent ? 'active' : '' %>"
+            data-quality="<%= s.quality %>"
+            data-url="<%= streamUrl %>"
+            onclick="switchResolution('<%= s.quality %>', '<%= streamUrl %>')"
+          >
+            <i class="fa-solid fa-circle-play"></i>
+            <span><%= s.quality %></span>
+            <% if (s.sizeFormatted) { %>
+              <small class="pill-size"><%= s.sizeFormatted %></small>
+            <% } %>
+          </button>
+        <% }); %>
+      </div>
+    </div>
+
+    <!-- Subtitle Selector (Optional Quick Switcher) -->
+    <% if (stream.subtitles && stream.subtitles.length > 0) { %>
+      <div class="stream-toolbar-section">
+        <div class="toolbar-label">
+          <i class="fa-solid fa-closed-captioning text-amber-400"></i>
+          <span>Subtitle:</span>
+        </div>
+        <div class="sub-pills-wrap">
+          <button class="sub-pill <%= !idSub ? 'active' : '' %>" id="subOffBtn" onclick="setSubtitle('off')">
+            Mati
+          </button>
+          <% stream.subtitles.forEach(function(sub) { 
+            const isDefault = idSub && idSub.id === sub.id;
+          %>
+            <button
+              class="sub-pill <%= isDefault ? 'active' : '' %>"
+              data-subid="<%= sub.id %>"
+              data-vtt="<%= sub.vttUrl %>"
+              data-name="<%= sub.languageName %>"
+              data-lang="<%= sub.languageCode %>"
+              onclick="setSubtitle('<%= sub.id %>', '<%= sub.vttUrl %>', '<%= sub.languageName %>', '<%= sub.languageCode %>')"
+            >
+              <%= sub.languageName %>
+            </button>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Series Episodes Navigation (If Series) -->
+  <% if (isSeries && episodes && episodes.length > 0) { %>
+    <div class="series-nav-panel">
+      <div class="series-nav-header">
         <div>
-          <h4 class="text-sm font-bold text-white mb-1">Daftar Episode — Season <%= stream.season %></h4>
-          <p class="text-xs text-slate-400">Pilih nomor episode untuk berpindah tontonan seketika</p>
+          <h3 class="series-nav-title">Episode Season <%= stream.season %></h3>
+          <p class="series-nav-sub">Klik episode untuk langsung memutar kelanjutan serial</p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem;">
+        <div style="display: flex; gap: 0.8rem;">
           <% if (prevEp) { %>
-            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= prevEp %>" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
-              <i class="fa-solid fa-chevron-left"></i> Episode <%= prevEp %>
+            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= prevEp %>" class="btn btn-secondary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+              <i class="fa-solid fa-chevron-left"></i> Ep <%= prevEp %>
             </a>
           <% } %>
           <% if (nextEp) { %>
-            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= nextEp %>" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">
-              Episode <%= nextEp %> <i class="fa-solid fa-chevron-right"></i>
+            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= nextEp %>" class="btn btn-primary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+              Ep <%= nextEp %> <i class="fa-solid fa-chevron-right"></i>
             </a>
           <% } %>
         </div>
       </div>
 
-      <div class="series-episodes-list-horizontal">
+      <!-- Episode Grid Buttons -->
+      <div class="series-ep-grid">
         <% episodes.forEach(function(ep) { 
           const isCurrent = ep === stream.episode;
           const epUrl = `/player?path=${encodeURIComponent(stream.detailPath)}&id=${encodeURIComponent(stream.subjectId)}&se=${stream.season}&ep=${ep}`;
         %>
-          <a href="<%= epUrl %>" class="ep-btn-quick <%= isCurrent ? 'current' : '' %>">
-            <span class="ep-num"><%= ep %></span>
-            <span>EP</span>
+          <a href="<%= epUrl %>" class="ep-badge-btn <%= isCurrent ? 'current' : '' %>">
+            <span class="ep-badge-num"><%= ep %></span>
+            <span class="ep-badge-lbl">EP</span>
           </a>
         <% }); %>
       </div>
@@ -244,7 +180,7 @@
 </main>
 
 <script>
-  // Player Variables
+  const video = document.getElementById('mainVideo');
   const detailPath = '<%= stream.detailPath %>';
   const subjectId = '<%= stream.subjectId %>';
   const isMovie = <%= stream.isMovie %>;
@@ -252,277 +188,84 @@
   const currentEpisode = <%= stream.episode %>;
   const coverUrl = '<%= detail ? detail.coverUrl : '' %>';
 
-  let currentDirectUrl = '<%= bestStream ? bestStream.url : '' %>';
-  let currentProxyUrl = '<%= bestStream ? bestStream.proxyUrl : '' %>';
-  let currentRouteMode = 'direct'; // 'direct' or 'proxy'
-
-  const video = document.getElementById('mainVideo');
-  const videoWrapper = document.getElementById('videoWrapper');
-  const controlsBar = document.getElementById('controlsBar');
-  const playPauseBtn = document.getElementById('playPauseBtn');
-  const centerPlayBtn = document.getElementById('centerPlayBtn');
-  const rewindBtn = document.getElementById('rewindBtn');
-  const forwardBtn = document.getElementById('forwardBtn');
-  const progressContainer = document.getElementById('progressContainer');
-  const progressFilled = document.getElementById('progressFilled');
-  const progressBuffer = document.getElementById('progressBuffer');
-  const progressThumb = document.getElementById('progressThumb');
-  const currentTimeElem = document.getElementById('currentTime');
-  const durationTimeElem = document.getElementById('durationTime');
-  const volumeBtn = document.getElementById('volumeBtn');
-  const volumeSlider = document.getElementById('volumeSlider');
-  const fullscreenBtn = document.getElementById('fullscreenBtn');
-  const pipBtn = document.getElementById('pipBtn');
-
-  let isScrubbing = false;
-  let controlsTimeout = null;
-
-  // 1. Picture-in-Picture (PiP) Implementation
-  if (pipBtn) {
-    if ('pictureInPictureEnabled' in document) {
-      pipBtn.addEventListener('click', async () => {
-        try {
-          if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-          } else {
-            await video.requestPictureInPicture();
-            StreamBoxApp.showToast('Mode Picture-in-Picture (PiP) aktif');
-          }
-        } catch (err) {
-          console.error('PiP Error:', err);
-          StreamBoxApp.showToast('Browser membatasi PiP untuk video ini');
-        }
-      });
-    } else {
-      pipBtn.style.display = 'none';
-    }
-  }
-
-  // 2. Fallback on Direct Stream error (CDN Hotlink Protection fallback)
-  video.addEventListener('error', (e) => {
-    console.warn('Video load error:', e);
-    if (currentRouteMode === 'direct') {
-      StreamBoxApp.showToast('CDN sumber membatasi akses direct. Beralih ke jalur cadangan...');
-      toggleStreamRoute('proxy');
-    }
-  });
-
-  // 3. Switch between Direct MP4 and Proxy
-  window.toggleStreamRoute = function(mode) {
-    currentRouteMode = mode;
+  // Quality Switching: Seamlessly changes stream resolution and restores currentTime
+  window.switchResolution = function(quality, streamUrl) {
+    if (!video) return;
     const prevTime = video.currentTime;
     const wasPlaying = !video.paused;
 
-    document.getElementById('streamModeDirectBtn').classList.toggle('active', mode === 'direct');
-    document.getElementById('streamModeProxyBtn').classList.toggle('active', mode === 'proxy');
+    // Update active button state
+    document.querySelectorAll('.quality-pill').forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-quality') === quality);
+    });
 
-    video.src = mode === 'direct' ? currentDirectUrl : currentProxyUrl;
+    video.src = streamUrl;
     video.currentTime = prevTime;
-    if (wasPlaying) video.play().catch(() => {});
-    StreamBoxApp.showToast(`Jalur stream: ${mode === 'direct' ? 'Direct MP4' : 'Proxy'}`);
-  };
 
-  // 4. Toggle between Custom Controls and Native Browser Controls
-  window.togglePlayerControlsMode = function(mode) {
-    const isNative = mode === 'native';
-    document.getElementById('modeNativeBtn').classList.toggle('active', isNative);
-    document.getElementById('modeCustomBtn').classList.toggle('active', !isNative);
-
-    video.controls = isNative;
-    controlsBar.style.display = isNative ? 'none' : 'flex';
-    centerPlayBtn.style.display = isNative ? 'none' : 'flex';
-    StreamBoxApp.showToast(`Kontrol pemutar: ${isNative ? 'Native Browser' : 'Kustom'}`);
-  };
-
-  // 5. Play / Pause
-  function togglePlay() {
-    if (video.paused) {
+    if (wasPlaying) {
       video.play().catch(() => {});
-    } else {
-      video.pause();
     }
-  }
 
-  playPauseBtn.addEventListener('click', togglePlay);
-  centerPlayBtn.addEventListener('click', togglePlay);
-  video.addEventListener('click', togglePlay);
-
-  video.addEventListener('play', () => {
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-    centerPlayBtn.classList.add('hidden');
-    resetControlsTimer();
-  });
-
-  video.addEventListener('pause', () => {
-    playPauseBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-    centerPlayBtn.classList.remove('hidden');
-    controlsBar.classList.remove('inactive');
-  });
-
-  rewindBtn.addEventListener('click', () => {
-    video.currentTime = Math.max(0, video.currentTime - 10);
-    resetControlsTimer();
-  });
-
-  forwardBtn.addEventListener('click', () => {
-    video.currentTime = Math.min(video.duration, video.currentTime + 10);
-    resetControlsTimer();
-  });
-
-  // 6. Time & Progress Bar
-  video.addEventListener('timeupdate', () => {
-    if (isScrubbing || isNaN(video.duration)) return;
-    const current = video.currentTime;
-    const duration = video.duration;
-    const pct = (current / duration) * 100;
-    progressFilled.style.width = `${pct}%`;
-    progressThumb.style.left = `${pct}%`;
-    currentTimeElem.textContent = StreamBoxApp.formatTime(current);
-    durationTimeElem.textContent = StreamBoxApp.formatTime(duration);
-
-    if (video.buffered.length > 0) {
-      const bufEnd = video.buffered.end(video.buffered.length - 1);
-      progressBuffer.style.width = `${(bufEnd / duration) * 100}%`;
-    }
-  });
-
-  function seek(e) {
-    const rect = progressContainer.getBoundingClientRect();
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    video.currentTime = pos * video.duration;
-    progressFilled.style.width = `${pos * 100}%`;
-    progressThumb.style.left = `${pos * 100}%`;
-  }
-
-  progressContainer.addEventListener('mousedown', (e) => { isScrubbing = true; seek(e); });
-  window.addEventListener('mousemove', (e) => { if (isScrubbing) seek(e); });
-  window.addEventListener('mouseup', () => { isScrubbing = false; });
-
-  // 7. Volume
-  volumeSlider.addEventListener('input', (e) => {
-    video.volume = parseFloat(e.target.value);
-    video.muted = false;
-    updateVolIcon();
-  });
-
-  volumeBtn.addEventListener('click', () => {
-    video.muted = !video.muted;
-    updateVolIcon();
-  });
-
-  function updateVolIcon() {
-    if (video.muted || video.volume === 0) {
-      volumeBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
-    } else if (video.volume < 0.5) {
-      volumeBtn.innerHTML = '<i class="fa-solid fa-volume-low"></i>';
-    } else {
-      volumeBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-    }
-  }
-
-  // 8. Fullscreen
-  fullscreenBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      if (videoWrapper.requestFullscreen) videoWrapper.requestFullscreen();
-    } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-    }
-  });
-
-  // 9. Dropdown helpers
-  function setupDropdown(btnId, menuId) {
-    const btn = document.getElementById(btnId);
-    const menu = document.getElementById(menuId);
-    if (!btn || !menu) return;
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const show = menu.classList.contains('show');
-      document.querySelectorAll('.player-dropdown-menu').forEach(m => m.classList.remove('show'));
-      if (!show) menu.classList.add('show');
-    });
-  }
-
-  setupDropdown('speedBtn', 'speedDropdown');
-  setupDropdown('subBtn', 'subDropdown');
-  setupDropdown('qualityBtn', 'qualityDropdown');
-  window.addEventListener('click', () => {
-    document.querySelectorAll('.player-dropdown-menu').forEach(m => m.classList.remove('show'));
-  });
-
-  // 10. Quality Switcher
-  window.switchQualitySSR = function(quality, directUrl, proxyUrl) {
-    currentDirectUrl = directUrl;
-    currentProxyUrl = proxyUrl;
-    const prevTime = video.currentTime;
-    const wasPlaying = !video.paused;
-
-    video.src = currentRouteMode === 'direct' ? currentDirectUrl : currentProxyUrl;
-    video.currentTime = prevTime;
-    document.getElementById('qualityLabel').textContent = quality;
-    document.querySelectorAll('#qualityDropdown .dropdown-item').forEach(i => {
-      i.classList.toggle('active', i.getAttribute('data-quality') === quality);
-    });
-    if (wasPlaying) video.play().catch(() => {});
     StreamBoxApp.showToast(`Kualitas: ${quality}`);
   };
 
-  // 11. Subtitle Switcher
-  window.switchSubtitleSSR = function(subId, vttUrl, langName, langCode) {
-    while (video.firstChild) video.removeChild(video.firstChild);
-    document.querySelectorAll('#subDropdown .dropdown-item').forEach(i => {
-      i.classList.toggle('active', i.getAttribute('data-sub') === subId);
+  // Subtitle Switching
+  window.setSubtitle = function(subId, vttUrl, langName, langCode) {
+    if (!video) return;
+    document.querySelectorAll('.sub-pill').forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-subid') === subId);
     });
+
     if (subId === 'off') {
-      document.getElementById('subLabel').textContent = 'Sub: Nonaktif';
+      document.getElementById('subOffBtn').classList.add('active');
+      for (let i = 0; i < video.textTracks.length; i++) {
+        video.textTracks[i].mode = 'disabled';
+      }
+      StreamBoxApp.showToast('Subtitle dinonaktifkan');
       return;
     }
-    document.getElementById('subLabel').textContent = `Sub: ${langName}`;
-    const track = document.createElement('track');
-    track.kind = 'subtitles';
-    track.label = langName;
-    track.srclang = langCode;
-    track.src = vttUrl;
-    track.default = true;
-    video.appendChild(track);
-    if (video.textTracks && video.textTracks.length > 0) {
-      video.textTracks[0].mode = 'showing';
+
+    document.getElementById('subOffBtn').classList.remove('active');
+
+    // Match or create track
+    let found = false;
+    for (let i = 0; i < video.textTracks.length; i++) {
+      if (video.textTracks[i].label === langName) {
+        video.textTracks[i].mode = 'showing';
+        found = true;
+      } else {
+        video.textTracks[i].mode = 'disabled';
+      }
     }
+
+    if (!found) {
+      const track = document.createElement('track');
+      track.kind = 'subtitles';
+      track.label = langName;
+      track.srclang = langCode;
+      track.src = vttUrl;
+      track.default = true;
+      video.appendChild(track);
+      if (video.textTracks.length > 0) {
+        video.textTracks[video.textTracks.length - 1].mode = 'showing';
+      }
+    }
+
     StreamBoxApp.showToast(`Subtitle: ${langName}`);
   };
 
-  // Speed
-  document.querySelectorAll('#speedDropdown .dropdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const spd = parseFloat(item.getAttribute('data-speed'));
-      video.playbackRate = spd;
-      document.getElementById('speedLabel').textContent = `${spd}x`;
-      document.querySelectorAll('#speedDropdown .dropdown-item').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-    });
-  });
-
-  // Controls Auto-Hide
-  function resetControlsTimer() {
-    controlsBar.classList.remove('inactive');
-    clearTimeout(controlsTimeout);
-    controlsTimeout = setTimeout(() => {
-      if (!video.paused && !isScrubbing) controlsBar.classList.add('inactive');
-    }, 3500);
-  }
-  videoWrapper.addEventListener('mousemove', resetControlsTimer);
-
-  // Resume Playback
+  // Resume Playback from localStorage
   video.addEventListener('loadedmetadata', () => {
     const history = StreamBoxApp.getHistoryItem(detailPath);
     if (history && history.currentTime > 15) {
       if (isMovie || (history.season === currentSeason && history.episode === currentEpisode)) {
         video.currentTime = history.currentTime;
-        StreamBoxApp.showToast(`Melanjutkan dari posisi ${StreamBoxApp.formatTime(history.currentTime)}`);
+        StreamBoxApp.showToast(`Melanjutkan dari menit ${StreamBoxApp.formatTime(history.currentTime)}`);
       }
     }
   });
 
-  // Auto-Save progress every 5s
+  // Auto-Save progress every 5 seconds
   setInterval(() => {
     if (video && !video.paused && video.currentTime > 5) {
       StreamBoxApp.saveHistory({
@@ -538,6 +281,16 @@
       });
     }
   }, 5000);
+
+  // Auto-play next episode when video ends
+  video.addEventListener('ended', () => {
+    <% if (isSeries && nextEp) { %>
+      StreamBoxApp.showToast('Episode selesai. Memutar Episode <%= nextEp %>...');
+      setTimeout(() => {
+        window.location.href = '/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= nextEp %>';
+      }, 3500);
+    <% } %>
+  });
 </script>
 
 <%- include('partials/footer') %>
