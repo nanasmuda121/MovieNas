@@ -42,7 +42,7 @@
     </div>
 
     <!-- Result Stat Text -->
-    <div class="text-sm text-slate-400 font-medium" style="min-height: 20px;">
+    <div class="text-sm text-slate-400 font-medium" id="searchStatText" style="min-height: 20px;">
       <% if (query) { %>
         <% if (results && results.length > 0) { %>
           Menemukan <strong><%= results.length %></strong> hasil pencarian untuk "<strong><%= query %></strong>":
@@ -55,26 +55,86 @@
     </div>
   </div>
 
-  <!-- Results Grid (Server-Side Rendered Real HTML!) -->
-  <% if (results && results.length > 0) { %>
-    <div class="responsive-grid">
+  <!-- Results Grid (Server-Side Rendered Real HTML with Client Dynamic Hydration) -->
+  <div class="responsive-grid" id="searchResultsContainer">
+    <% if (results && results.length > 0) { %>
       <% results.forEach(function(item) { %>
         <%- include('partials/card', { item: item }) %>
       <% }); %>
-    </div>
-  <% } else if (query) { %>
-    <!-- Empty State -->
-    <div style="text-align: center; padding: 4rem 1rem;">
-      <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;">
-        <i class="fa-solid fa-film"></i>
+    <% } else if (query) { %>
+      <!-- Empty State -->
+      <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem;">
+        <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;">
+          <i class="fa-solid fa-film"></i>
+        </div>
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Tidak Ada Hasil Ditemukan</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
+          Coba periksa kembali ejaan judul film, gunakan kata kunci yang lebih ringkas, atau pilih kategori lain.
+        </p>
       </div>
-      <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Tidak Ada Hasil Ditemukan</h3>
-      <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
-        Coba periksa kembali ejaan judul film, gunakan kata kunci yang lebih ringkas, atau pilih kategori lain.
-      </p>
-    </div>
-  <% } %>
+    <% } %>
+  </div>
 
 </main>
+
+<script>
+  // Frontend Pattern: Debounce Function for Live Search
+  function debounce(fn, delay) {
+    let timer = null;
+    return function(...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
+  const searchInput = document.getElementById('mainSearchInput');
+  const resultsContainer = document.getElementById('searchResultsContainer');
+  const statText = document.getElementById('searchStatText');
+  const currentType = <%= currentType %>;
+
+  if (searchInput && resultsContainer) {
+    const performLiveSearch = debounce(async (q) => {
+      const trimmed = q.trim();
+      if (!trimmed) {
+        window.location.href = `/search?type=${currentType}`;
+        return;
+      }
+      
+      statText.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-red-500"></i> Sedang mencari film...';
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}&type=${currentType}`);
+        const data = await res.json();
+        const items = data.data || [];
+
+        // Update URL state without reload
+        history.replaceState(null, '', `/search?q=${encodeURIComponent(trimmed)}&type=${currentType}`);
+
+        if (items.length > 0) {
+          statText.innerHTML = `Menemukan <strong>${items.length}</strong> hasil pencarian untuk "<strong>${trimmed}</strong>":`;
+          resultsContainer.innerHTML = items.map(item => StreamBoxApp.createPosterCard(item)).join('');
+        } else {
+          statText.innerHTML = `Tidak ada hasil ditemukan untuk "<strong>${trimmed}</strong>".`;
+          resultsContainer.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem;">
+              <div style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <i class="fa-solid fa-film"></i>
+              </div>
+              <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Tidak Ada Hasil Ditemukan</h3>
+              <p style="font-size: 0.9rem; color: var(--text-secondary); max-width: 400px; margin: 0 auto;">
+                Coba periksa kembali ejaan judul film, gunakan kata kunci yang lebih ringkas, atau pilih kategori lain.
+              </p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        statText.textContent = 'Gagal memuat hasil pencarian.';
+      }
+    }, 450);
+
+    searchInput.addEventListener('input', (e) => {
+      performLiveSearch(e.target.value);
+    });
+  }
+</script>
 
 <%- include('partials/footer') %>

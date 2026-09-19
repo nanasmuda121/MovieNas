@@ -156,22 +156,29 @@
   </section>
 <% } %>
 
-<!-- Trailer Modal -->
-<div id="trailerModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 500; align-items: center; justify-content: center; padding: 1.5rem;">
-  <div style="position: relative; width: 100%; max-width: 900px; background: #121218; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: 0 25px 60px rgba(0,0,0,0.9);">
+<!-- Trailer Modal (Accessible Dialog Pattern) -->
+<div id="trailerModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="trailerModalTitle"
+  style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 500; align-items: center; justify-content: center; padding: 1.5rem; backdrop-filter: blur(8px);"
+  onclick="if (event.target === this) closeTrailerModal();">
+  <div style="position: relative; width: 100%; max-width: 900px; background: #121218; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: 0 25px 60px rgba(0,0,0,0.95); animation: slideUpFade 0.3s ease;">
     <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-subtle);">
       <h4 id="trailerModalTitle" style="font-size: 1rem; font-weight: 700; color: #fff;">Trailer Resmi</h4>
-      <button id="trailerCloseBtn" onclick="closeTrailerModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer;">
+      <button id="trailerCloseBtn" onclick="closeTrailerModal()" aria-label="Tutup Trailer" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 6px; transition: color 0.2s;">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
     <div style="position: relative; width: 100%; aspect-ratio: 16/9; background: #000;">
-      <video id="trailerVideo" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
+      <video id="trailerVideo" controls playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>
     </div>
   </div>
 </div>
 
 <script>
+  let previousFocusElement = null;
+
   function switchSeasonSSR(index) {
     document.querySelectorAll('.season-tab').forEach((t, i) => {
       t.classList.toggle('active', i === index);
@@ -185,11 +192,14 @@
     const modal = document.getElementById('trailerModal');
     const video = document.getElementById('trailerVideo');
     const titleElem = document.getElementById('trailerModalTitle');
+    const closeBtn = document.getElementById('trailerCloseBtn');
     if (modal && video) {
+      previousFocusElement = document.activeElement;
       titleElem.textContent = `Trailer: ${title}`;
       video.src = videoUrl;
       modal.style.display = 'flex';
       video.play().catch(() => {});
+      if (closeBtn) closeBtn.focus();
     }
   }
 
@@ -198,7 +208,21 @@
     const video = document.getElementById('trailerVideo');
     if (modal) modal.style.display = 'none';
     if (video) { video.pause(); video.src = ''; }
+    if (previousFocusElement && typeof previousFocusElement.focus === 'function') {
+      previousFocusElement.focus();
+      previousFocusElement = null;
+    }
   }
+
+  // Keyboard accessibility: Escape key closes modal
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('trailerModal');
+      if (modal && modal.style.display === 'flex') {
+        closeTrailerModal();
+      }
+    }
+  });
 </script>
 
 <%- include('partials/footer') %>

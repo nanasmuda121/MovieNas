@@ -39,7 +39,7 @@ const StreamBoxApp = {
       if (e.key === 'Enter') {
         const query = navSearch.value.trim();
         if (query) {
-          window.location.href = `/search.html?q=${encodeURIComponent(query)}`;
+          window.location.href = `/search?q=${encodeURIComponent(query)}`;
         }
       }
     });
@@ -206,8 +206,8 @@ const StreamBoxApp = {
   createPosterCard(item) {
     const isSeries = item.typeLabel === 'Series' || item.subjectType === 2;
     const badgeTypeClass = isSeries ? 'badge-type-series' : 'badge-type-movie';
-    const detailUrl = `/detail.html?path=${encodeURIComponent(item.detailPath)}`;
-    const playUrl = `/player.html?path=${encodeURIComponent(item.detailPath)}`;
+    const detailUrl = `/detail/${encodeURIComponent(item.detailPath)}`;
+    const playUrl = `/player?path=${encodeURIComponent(item.detailPath)}`;
 
     const fallbackImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300' viewBox='0 0 200 300'%3E%3Crect width='200' height='300' fill='%23171722'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='14'%3ENo Poster%3C/text%3E%3C/svg%3E";
 
