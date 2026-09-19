@@ -101,19 +101,19 @@ app.get(['/detail/:path', '/detail'], async (req, res) => {
   }
 });
 
-// Player Page SSR
-app.get('/player', async (req, res) => {
+// Player Page SSR (/play/:slug for movies, /play/:slug/:ep/:se for series)
+async function renderPlayerPage(req, res) {
   try {
-    const detailPath = req.query.path || req.query.slug;
-    if (!detailPath) return res.redirect('/');
+    const slug = req.params.slug || req.query.path || req.query.slug;
+    if (!slug) return res.redirect('/');
 
     const subjectId = req.query.id || req.query.subjectId || '';
-    const season = parseInt(req.query.se || req.query.season || '0', 10);
-    const episode = parseInt(req.query.ep || req.query.episode || '0', 10);
+    const episode = parseInt(req.params.ep || req.query.ep || req.query.episode || '0', 10);
+    const season = parseInt(req.params.se || req.query.se || req.query.season || '0', 10);
 
     const [streamResult, detailResult] = await Promise.allSettled([
-      movie.stream(detailPath, subjectId, season, episode, 'id'),
-      movie.detail(detailPath, 'id'),
+      movie.stream(slug, subjectId, season, episode, 'id'),
+      movie.detail(slug, 'id'),
     ]);
 
     const stream = streamResult.status === 'fulfilled' ? streamResult.value : null;
@@ -131,6 +131,21 @@ app.get('/player', async (req, res) => {
     console.error('[SSR Player Error]:', err.message);
     res.status(500).send(`Gagal memuat player: ${err.message}`);
   }
+}
+
+// Support /play/slug/ep/se (series) and /play/slug (movie)
+app.get(['/play/:slug/:ep/:se', '/play/:slug/:ep', '/play/:slug'], renderPlayerPage);
+
+// Backward-compatible redirect from old /player query style to clean /play URLs
+app.get('/player', (req, res) => {
+  const slug = req.query.path || req.query.slug;
+  if (!slug) return res.redirect('/');
+  const se = req.query.se || req.query.season;
+  const ep = req.query.ep || req.query.episode;
+  if (ep && se) {
+    return res.redirect(301, `/play/${encodeURIComponent(slug)}/${encodeURIComponent(ep)}/${encodeURIComponent(se)}`);
+  }
+  return res.redirect(301, `/play/${encodeURIComponent(slug)}`);
 });
 
 // ==========================================

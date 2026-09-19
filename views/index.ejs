@@ -39,7 +39,12 @@
       <p class="hero-desc"><%= heroItem.description || 'Streaming film dan series pilihan berkualitas tinggi.' %></p>
 
       <div class="hero-actions">
-        <a href="/player?path=<%= encodeURIComponent(heroItem.detailPath) %>" class="btn btn-primary">
+        <% 
+          const heroPlayUrl = isSeries 
+            ? `/play/${encodeURIComponent(heroItem.detailPath)}/1/1` 
+            : `/play/${encodeURIComponent(heroItem.detailPath)}`; 
+        %>
+        <a href="<%= heroPlayUrl %>" class="btn btn-primary">
           <i class="fa-solid fa-play"></i> Putar Sekarang
         </a>
         <a href="/detail/<%= encodeURIComponent(heroItem.detailPath) %>" class="btn btn-secondary">
@@ -200,7 +205,9 @@
     }
     sec.style.display = 'block';
     track.innerHTML = history.map(item => {
-      const playUrl = `/player?path=${encodeURIComponent(item.detailPath)}&se=${item.season || 0}&ep=${item.episode || 0}&t=${Math.floor(item.currentTime || 0)}`;
+      const playUrl = item.isMovie 
+        ? `/play/${encodeURIComponent(item.detailPath)}`
+        : `/play/${encodeURIComponent(item.detailPath)}/${item.episode || 1}/${item.season || 1}`;
       const epText = item.isMovie ? 'Film' : `S${item.season || 1} E${item.episode || 1}`;
       return `
         <div class="cw-card" onclick="window.location.href='${playUrl}'">

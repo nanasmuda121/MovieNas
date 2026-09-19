@@ -150,12 +150,12 @@
 
         <div style="display: flex; gap: 0.8rem;">
           <% if (prevEp) { %>
-            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= prevEp %>" class="btn btn-secondary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= prevEp %>/<%= stream.season %>" class="btn btn-secondary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
               <i class="fa-solid fa-chevron-left"></i> Ep <%= prevEp %>
             </a>
           <% } %>
           <% if (nextEp) { %>
-            <a href="/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= nextEp %>" class="btn btn-primary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+            <a href="/play/<%= encodeURIComponent(stream.detailPath) %>/<%= nextEp %>/<%= stream.season %>" class="btn btn-primary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
               Ep <%= nextEp %> <i class="fa-solid fa-chevron-right"></i>
             </a>
           <% } %>
@@ -166,7 +166,7 @@
       <div class="series-ep-grid">
         <% episodes.forEach(function(ep) { 
           const isCurrent = ep === stream.episode;
-          const epUrl = `/player?path=${encodeURIComponent(stream.detailPath)}&id=${encodeURIComponent(stream.subjectId)}&se=${stream.season}&ep=${ep}`;
+          const epUrl = `/play/${encodeURIComponent(stream.detailPath)}/${ep}/${stream.season}`;
         %>
           <a href="<%= epUrl %>" class="ep-badge-btn <%= isCurrent ? 'current' : '' %>">
             <span class="ep-badge-num"><%= ep %></span>
@@ -287,7 +287,7 @@
     <% if (isSeries && nextEp) { %>
       StreamBoxApp.showToast('Episode selesai. Memutar Episode <%= nextEp %>...');
       setTimeout(() => {
-        window.location.href = '/player?path=<%= encodeURIComponent(stream.detailPath) %>&id=<%= encodeURIComponent(stream.subjectId) %>&se=<%= stream.season %>&ep=<%= nextEp %>';
+        window.location.href = '/play/<%= encodeURIComponent(stream.detailPath) %>/<%= nextEp %>/<%= stream.season %>';
       }, 3500);
     <% } %>
   });

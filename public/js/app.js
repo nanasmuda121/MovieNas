@@ -9,7 +9,22 @@ const StreamBoxApp = {
     this.initNavbar();
     this.initSearchInput();
     this.initMobileMenu();
+    this.initBottomNav();
     this.updateWatchlistBadge();
+  },
+
+  // Bottom Navigation Dock interaction
+  initBottomNav() {
+    const wlBtn = document.getElementById('bottomNavWatchlist');
+    if (wlBtn && (window.location.pathname === '/' || window.location.pathname === '')) {
+      wlBtn.addEventListener('click', (e) => {
+        const target = document.getElementById('watchlist');
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
   },
 
   // Navbar scroll background transition
@@ -207,7 +222,9 @@ const StreamBoxApp = {
     const isSeries = item.typeLabel === 'Series' || item.subjectType === 2;
     const badgeTypeClass = isSeries ? 'badge-type-series' : 'badge-type-movie';
     const detailUrl = `/detail/${encodeURIComponent(item.detailPath)}`;
-    const playUrl = `/player?path=${encodeURIComponent(item.detailPath)}`;
+    const playUrl = isSeries 
+      ? `/play/${encodeURIComponent(item.detailPath)}/1/1`
+      : `/play/${encodeURIComponent(item.detailPath)}`;
 
     const fallbackImg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300' viewBox='0 0 200 300'%3E%3Crect width='200' height='300' fill='%23171722'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-family='sans-serif' font-size='14'%3ENo Poster%3C/text%3E%3C/svg%3E";
 

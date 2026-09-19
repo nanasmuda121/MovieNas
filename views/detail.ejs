@@ -22,13 +22,11 @@
         <img id="detailPosterImg" src="<%= detail.coverUrl %>" alt="<%= detail.title %>" />
         <div class="detail-poster-actions">
           <% 
-            let directPlayUrl = `/player?path=${encodeURIComponent(detail.detailPath)}&id=${encodeURIComponent(detail.subjectId || '')}`;
+            let directPlayUrl = `/play/${encodeURIComponent(detail.detailPath)}`;
             if (isSeries && detail.resource && detail.resource.seasons && detail.resource.seasons.length > 0) {
               const s1 = detail.resource.seasons[0];
               const ep1 = s1.allEpisodes?.[0] || 1;
-              directPlayUrl += `&se=${s1.seasonNumber}&ep=${ep1}`;
-            } else {
-              directPlayUrl += `&se=0&ep=0`;
+              directPlayUrl = `/play/${encodeURIComponent(detail.detailPath)}/${ep1}/${s1.seasonNumber}`;
             }
           %>
           <a href="<%= directPlayUrl %>" class="btn btn-primary" style="width: 100%;">
@@ -144,7 +142,7 @@
     %>
       <div class="episodes-grid season-grid-pane" id="seasonGrid-<%= idx %>" style="<%= idx === 0 ? 'display: grid;' : 'display: none;' %>">
         <% epList.forEach(function(ep) { 
-          const playUrl = `/player?path=${encodeURIComponent(detail.detailPath)}&id=${encodeURIComponent(detail.subjectId || '')}&se=${seNum}&ep=${ep}`;
+          const playUrl = `/play/${encodeURIComponent(detail.detailPath)}/${ep}/${seNum}`;
         %>
           <a href="<%= playUrl %>" class="episode-card">
             <div class="episode-number"><%= ep %></div>
