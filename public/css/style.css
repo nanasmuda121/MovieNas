@@ -2466,3 +2466,212 @@ body {
   box-shadow: 0 0 15px rgba(229, 9, 20, 0.25) !important;
 }
 
+/* ==========================================================================
+   HIGH-PERFORMANCE HARDWARE-ACCELERATED SLIDE MOVE & TACTILE THICKNESS (ANTI-LAG)
+   ========================================================================== */
+.card-poster, .btn, .filter-pill, .quality-pill, .sub-pill, .ep-badge-btn, .cw-card, .episode-card, .carousel-btn, .dub-pill, .season-tab {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+/* Card Poster: Smooth slide move + tactile thickness */
+.card-poster {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3.5px solid rgba(255, 255, 255, 0.16) !important;
+  transition: transform 0.22s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.2s ease,
+              border-bottom-color 0.2s ease,
+              background-color 0.2s ease !important;
+}
+
+.card-poster:hover {
+  transform: translate3d(0, -7px, 0) !important;
+  border-color: rgba(229, 9, 20, 0.65) !important;
+  border-bottom-color: #e50914 !important;
+  background-color: #1a1a28 !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Buttons: Tactile depth thickness + move slide */
+.btn {
+  border: 1.5px solid transparent !important;
+  border-bottom: 3.5px solid rgba(0, 0, 0, 0.4) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              opacity 0.18s ease !important;
+}
+
+.btn:hover {
+  transform: translate3d(0, -2.5px, 0) !important;
+}
+
+.btn:active {
+  transform: translate3d(0, 1.5px, 0) !important;
+  border-bottom-width: 1.5px !important;
+}
+
+.btn-primary {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-bottom: 3.5px solid #8b0008 !important;
+  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.4) !important;
+}
+
+.btn-primary:hover {
+  border-bottom-color: #ff1e27 !important;
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.6) !important;
+}
+
+.btn-secondary {
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 3.5px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  border-bottom-color: #e50914 !important;
+}
+
+/* Carousel buttons */
+.carousel-btn {
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.22) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              background-color 0.18s ease !important;
+}
+
+.carousel-btn:hover {
+  transform: translate3d(0, -2.5px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+/* Continue watching cards */
+.cw-card {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3.5px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.22s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.2s ease,
+              border-bottom-color 0.2s ease !important;
+}
+
+.cw-card:hover {
+  transform: translate3d(0, -6px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+/* Search filter pills */
+.filter-pill {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              color 0.18s ease,
+              background-color 0.18s ease !important;
+}
+
+.filter-pill:hover {
+  transform: translate3d(0, -3px, 0) !important;
+  border-color: rgba(229, 9, 20, 0.5) !important;
+  border-bottom-color: #e50914 !important;
+}
+
+.filter-pill.active {
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  border-bottom: 3.5px solid #e50914 !important;
+}
+
+/* Detail Season tabs */
+.season-tab {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease !important;
+}
+
+.season-tab:hover {
+  transform: translate3d(0, -2px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+.season-tab.active {
+  border-color: #e50914 !important;
+  border-bottom: 3.5px solid #e50914 !important;
+}
+
+/* Episode cards in detail */
+.episode-card {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              background-color 0.18s ease !important;
+}
+
+.episode-card:hover {
+  transform: translate3d(0, -3.5px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+/* Quality pills */
+.quality-pill {
+  border: 1.5px solid rgba(255, 255, 255, 0.09) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.15) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              background-color 0.18s ease !important;
+}
+
+.quality-pill:hover {
+  transform: translate3d(0, -2.5px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+.quality-pill.active {
+  border-color: #e50914 !important;
+  border-bottom: 3.5px solid #e50914 !important;
+}
+
+/* Episode badges in Player */
+.ep-badge-btn {
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.14) !important;
+  transition: transform 0.18s cubic-bezier(0.2, 0.85, 0.25, 1),
+              border-color 0.18s ease,
+              background-color 0.18s ease !important;
+}
+
+.ep-badge-btn:hover {
+  transform: translate3d(0, -3px, 0) !important;
+  border-color: #e50914 !important;
+  border-bottom-color: #ff1e27 !important;
+}
+
+.ep-badge-btn.current {
+  border-color: #e50914 !important;
+  border-bottom: 3.5px solid #e50914 !important;
+}
+
+/* Page & Section Entrance Animations: Hardware-Accelerated Smooth Move */
+@keyframes smoothMoveUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.hero-content, .content-section, .search-page-container, .detail-content-wrap, .player-page-container {
+  animation: smoothMoveUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+
