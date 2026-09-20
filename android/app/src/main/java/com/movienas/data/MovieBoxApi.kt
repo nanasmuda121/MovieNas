@@ -153,13 +153,23 @@ object MovieBoxApi {
             }.toString()
 
             val callApi: (String) -> JSONObject = { t ->
+                val encodedKeyword = try {
+                    java.net.URLEncoder.encode(trimmed, "UTF-8")
+                } catch (e: Exception) {
+                    trimmed
+                }
                 val h = mutableMapOf(
                     "Content-Type" to "application/json",
+                    "Accept" to "application/json",
                     "X-Request-Lang" to lang,
+                    "X-Client-Info" to JSONObject().put("timezone", "Asia/Jakarta").toString(),
                     "Origin" to "https://themoviebox.xyz",
-                    "Referer" to "https://themoviebox.xyz/$lang"
+                    "Referer" to "https://themoviebox.xyz/$lang/web/searchResult?keyword=$encodedKeyword"
                 )
-                if (t.isNotEmpty()) h["X-User-Token"] = t
+                if (t.isNotEmpty()) {
+                    h["Authorization"] = "Bearer $t"
+                    h["Cookie"] = "mb_token=" + java.net.URLEncoder.encode(JSONObject().put("token", t).toString(), "UTF-8")
+                }
                 postJson("$BASE_URL/subject/search", postBody, h)
             }
 

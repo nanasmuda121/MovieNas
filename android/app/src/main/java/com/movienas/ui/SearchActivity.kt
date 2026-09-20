@@ -27,6 +27,13 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var rvSearchResults: RecyclerView
     private lateinit var tvEmptySearch: TextView
 
+    // Filter pills
+    private lateinit var searchTabAll: TextView
+    private lateinit var searchTabMovies: TextView
+    private lateinit var searchTabSeries: TextView
+    private lateinit var searchTabDrama: TextView
+
+    private var currentType: Int = 0 // 0: All, 1: Movie, 2: Series, 7: Short Drama
     private var movieAdapter: MovieCardAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +41,13 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         initViews()
+        setupListeners()
+
+        val initialQuery = intent.getStringExtra("EXTRA_QUERY") ?: ""
+        if (initialQuery.isNotEmpty()) {
+            etSearchQuery.setText(initialQuery)
+            performSearch()
+        }
     }
 
     private fun initViews() {
@@ -44,6 +58,11 @@ class SearchActivity : AppCompatActivity() {
         rvSearchResults = findViewById(R.id.rvSearchResults)
         tvEmptySearch = findViewById(R.id.tvEmptySearch)
 
+        searchTabAll = findViewById(R.id.searchTabAll)
+        searchTabMovies = findViewById(R.id.searchTabMovies)
+        searchTabSeries = findViewById(R.id.searchTabSeries)
+        searchTabDrama = findViewById(R.id.searchTabDrama)
+
         rvSearchResults.layoutManager = GridLayoutManager(this, 3)
         movieAdapter = MovieCardAdapter(emptyList()) { movie ->
             val intent = Intent(this, DetailActivity::class.java).apply {
@@ -52,7 +71,9 @@ class SearchActivity : AppCompatActivity() {
             startActivity(intent)
         }
         rvSearchResults.adapter = movieAdapter
+    }
 
+    private fun setupListeners() {
         btnSearchBack.setOnClickListener {
             finish()
         }
@@ -69,6 +90,35 @@ class SearchActivity : AppCompatActivity() {
                 false
             }
         }
+
+        searchTabAll.setOnClickListener { selectType(0) }
+        searchTabMovies.setOnClickListener { selectType(1) }
+        searchTabSeries.setOnClickListener { selectType(2) }
+        searchTabDrama.setOnClickListener { selectType(7) }
+    }
+
+    private fun selectType(type: Int) {
+        currentType = type
+        resetPills()
+
+        when (type) {
+            0 -> searchTabAll.setBackgroundResource(R.drawable.bg_pill_active)
+            1 -> searchTabMovies.setBackgroundResource(R.drawable.bg_pill_active)
+            2 -> searchTabSeries.setBackgroundResource(R.drawable.bg_pill_active)
+            7 -> searchTabDrama.setBackgroundResource(R.drawable.bg_pill_active)
+        }
+
+        if (etSearchQuery.text.toString().trim().isNotEmpty()) {
+            performSearch()
+        }
+    }
+
+    private fun resetPills() {
+        val inactive = R.drawable.bg_pill_inactive
+        searchTabAll.setBackgroundResource(inactive)
+        searchTabMovies.setBackgroundResource(inactive)
+        searchTabSeries.setBackgroundResource(inactive)
+        searchTabDrama.setBackgroundResource(inactive)
     }
 
     private fun performSearch() {
@@ -79,7 +129,13 @@ class SearchActivity : AppCompatActivity() {
         tvEmptySearch.visibility = View.GONE
 
         lifecycleScope.launch {
-            val result = MovieBoxApi.search(query, page = 1, perPage = 30)
+            val result = MovieBoxApi.search(
+                keyword = query,
+                page = 1,
+                perPage = 30,
+                subjectType = currentType,
+                lang = "id"
+            )
             searchProgressBar.visibility = View.GONE
 
             result.onSuccess { list ->
@@ -93,6 +149,8 @@ class SearchActivity : AppCompatActivity() {
                 }
             }.onFailure { err ->
                 Toast.makeText(this@SearchActivity, "Gagal mencari: ${err.message}", Toast.LENGTH_SHORT).show()
+                tvEmptySearch.text = "Gagal memuat pencarian: ${err.message}"
+                tvEmptySearch.visibility = View.VISIBLE
             }
         }
     }
