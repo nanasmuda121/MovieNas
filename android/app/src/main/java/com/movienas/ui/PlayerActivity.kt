@@ -2,6 +2,7 @@ package com.movienas.ui
 
 import android.app.PictureInPictureParams
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Color
@@ -39,6 +40,7 @@ import com.movienas.data.VideoStream
 import com.movienas.player.MoviePlayerManager
 import com.movienas.data.OfflineDownloadManager
 import com.movienas.ui.adapter.EpisodeAdapter
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 @UnstableApi
@@ -580,11 +582,11 @@ class PlayerActivity : AppCompatActivity() {
                     lang = "id"
                 )
 
-                if (!isActive || isFinishing || isDestroyed) return@launch
+                if (!this@launch.isActive || isFinishing || isDestroyed) return@launch
                 playerProgressBar.visibility = View.GONE
 
                 result.onSuccess { data ->
-                    if (!isActive || isFinishing || isDestroyed) return@onSuccess
+                    if (!this@launch.isActive || isFinishing || isDestroyed) return@onSuccess
                     streamData = data
 
                     if (data.streams.isNotEmpty()) {

@@ -442,7 +442,6 @@ object MovieBoxApi {
                         languageCode = code,
                         languageName = name,
                         srtUrl = srtUrl,
-                        vttUrl = "",
                         size = c.optLong("size", 0L)
                     )
                 )
