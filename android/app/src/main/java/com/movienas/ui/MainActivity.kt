@@ -1,6 +1,8 @@
 package com.movienas.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Html
 import android.view.View
@@ -8,6 +10,7 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
@@ -18,10 +21,13 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.movienas.R
 import com.movienas.data.CategorySection
+import com.movienas.data.DownloadedVideo
 import com.movienas.data.HomeData
 import com.movienas.data.MovieBoxApi
 import com.movienas.data.MovieItem
+import com.movienas.data.OfflineDownloadManager
 import com.movienas.ui.adapter.CategoryAdapter
+import com.movienas.ui.adapter.OfflineVideoAdapter
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -43,7 +49,33 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navBtnMovies: View
     private lateinit var navBtnSeries: View
     private lateinit var navBtnDrama: View
+    private lateinit var navBtnOffline: View
     private lateinit var navBtnSearch: View
+
+    private lateinit var ivNavHome: ImageView
+    private lateinit var tvNavHome: TextView
+    private lateinit var ivNavMovies: ImageView
+    private lateinit var tvNavMovies: TextView
+    private lateinit var ivNavSeries: ImageView
+    private lateinit var tvNavSeries: TextView
+    private lateinit var ivNavDrama: ImageView
+    private lateinit var tvNavDrama: TextView
+    private lateinit var ivNavOffline: ImageView
+    private lateinit var tvNavOffline: TextView
+    private lateinit var ivNavSearch: ImageView
+    private lateinit var tvNavSearch: TextView
+
+    // Offline Tab Views
+    private lateinit var layoutOffline: View
+    private lateinit var btnOfflineRefresh: ImageView
+    private lateinit var btnStorageMovies: TextView
+    private lateinit var btnStorageDownload: TextView
+    private lateinit var tvActiveStoragePath: TextView
+    private lateinit var layoutStoragePermissionWarning: View
+    private lateinit var btnGrantStoragePermission: TextView
+    private lateinit var rvOfflineVideos: RecyclerView
+    private lateinit var layoutOfflineEmpty: View
+    private var offlineAdapter: OfflineVideoAdapter? = null
 
     // Hero Banner Views
     private lateinit var ivHeroBackdrop: ImageView
@@ -68,6 +100,13 @@ class MainActivity : AppCompatActivity() {
         loadHomeFeed()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::layoutOffline.isInitialized && layoutOffline.visibility == View.VISIBLE) {
+            loadOfflineVideos()
+        }
+    }
+
     private fun initViews() {
         mainProgressBar = findViewById(R.id.mainProgressBar)
         mainScrollView = findViewById(R.id.mainScrollView)
@@ -89,7 +128,34 @@ class MainActivity : AppCompatActivity() {
         navBtnMovies = findViewById(R.id.navBtnMovies)
         navBtnSeries = findViewById(R.id.navBtnSeries)
         navBtnDrama = findViewById(R.id.navBtnDrama)
+        navBtnOffline = findViewById(R.id.navBtnOffline)
         navBtnSearch = findViewById(R.id.navBtnSearch)
+
+        ivNavHome = findViewById(R.id.ivNavHome)
+        tvNavHome = findViewById(R.id.tvNavHome)
+        ivNavMovies = findViewById(R.id.ivNavMovies)
+        tvNavMovies = findViewById(R.id.tvNavMovies)
+        ivNavSeries = findViewById(R.id.ivNavSeries)
+        tvNavSeries = findViewById(R.id.tvNavSeries)
+        ivNavDrama = findViewById(R.id.ivNavDrama)
+        tvNavDrama = findViewById(R.id.tvNavDrama)
+        ivNavOffline = findViewById(R.id.ivNavOffline)
+        tvNavOffline = findViewById(R.id.tvNavOffline)
+        ivNavSearch = findViewById(R.id.ivNavSearch)
+        tvNavSearch = findViewById(R.id.tvNavSearch)
+
+        // Offline Tab Views
+        layoutOffline = findViewById(R.id.layoutOffline)
+        btnOfflineRefresh = findViewById(R.id.btnOfflineRefresh)
+        btnStorageMovies = findViewById(R.id.btnStorageMovies)
+        btnStorageDownload = findViewById(R.id.btnStorageDownload)
+        tvActiveStoragePath = findViewById(R.id.tvActiveStoragePath)
+        layoutStoragePermissionWarning = findViewById(R.id.layoutStoragePermissionWarning)
+        btnGrantStoragePermission = findViewById(R.id.btnGrantStoragePermission)
+        rvOfflineVideos = findViewById(R.id.rvOfflineVideos)
+        layoutOfflineEmpty = findViewById(R.id.layoutOfflineEmpty)
+
+        rvOfflineVideos.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
 
         // Hero Banner
         ivHeroBackdrop = findViewById(R.id.ivHeroBackdrop)
@@ -118,13 +184,176 @@ class MainActivity : AppCompatActivity() {
 
         // Bottom Nav Bar clicks
         navBtnHome.setOnClickListener {
+            selectNavTab(0)
+            hideOfflineTab()
             filterFeed(0)
             mainScrollView.smoothScrollTo(0, 0)
         }
-        navBtnMovies.setOnClickListener { filterFeed(1) }
-        navBtnSeries.setOnClickListener { filterFeed(2) }
-        navBtnDrama.setOnClickListener { filterFeed(7) }
-        navBtnSearch.setOnClickListener { openSearch("") }
+        navBtnMovies.setOnClickListener {
+            selectNavTab(1)
+            hideOfflineTab()
+            filterFeed(1)
+        }
+        navBtnSeries.setOnClickListener {
+            selectNavTab(2)
+            hideOfflineTab()
+            filterFeed(2)
+        }
+        navBtnDrama.setOnClickListener {
+            selectNavTab(3)
+            hideOfflineTab()
+            filterFeed(7)
+        }
+        navBtnOffline.setOnClickListener {
+            selectNavTab(4)
+            showOfflineTab()
+        }
+        navBtnSearch.setOnClickListener {
+            selectNavTab(5)
+            openSearch("")
+        }
+
+        // Offline storage selector clicks
+        btnStorageMovies.setOnClickListener {
+            OfflineDownloadManager.setPreferredStorageFolder(this, OfflineDownloadManager.PATH_MOVIES)
+            updateStorageSelectorUi()
+            loadOfflineVideos()
+        }
+
+        btnStorageDownload.setOnClickListener {
+            OfflineDownloadManager.setPreferredStorageFolder(this, OfflineDownloadManager.PATH_DOWNLOAD)
+            updateStorageSelectorUi()
+            loadOfflineVideos()
+        }
+
+        btnOfflineRefresh.setOnClickListener {
+            loadOfflineVideos()
+            Toast.makeText(this, "Daftar video offline diperbarui", Toast.LENGTH_SHORT).show()
+        }
+
+        btnGrantStoragePermission.setOnClickListener {
+            OfflineDownloadManager.requestStoragePermission(this)
+        }
+    }
+
+    private fun selectNavTab(index: Int) {
+        val redColor = ContextCompat.getColor(this, R.color.brand_red)
+        val slateColor = ContextCompat.getColor(this, R.color.text_slate)
+
+        val icons = listOf(ivNavHome, ivNavMovies, ivNavSeries, ivNavDrama, ivNavOffline, ivNavSearch)
+        val texts = listOf(tvNavHome, tvNavMovies, tvNavSeries, tvNavDrama, tvNavOffline, tvNavSearch)
+
+        for (i in icons.indices) {
+            val isSelected = (i == index)
+            val c = if (isSelected) redColor else slateColor
+            icons[i].setColorFilter(c)
+            texts[i].setTextColor(c)
+        }
+    }
+
+    private fun showOfflineTab() {
+        mainScrollView.visibility = View.GONE
+        layoutOffline.visibility = View.VISIBLE
+        updateStorageSelectorUi()
+        loadOfflineVideos()
+    }
+
+    private fun hideOfflineTab() {
+        layoutOffline.visibility = View.GONE
+        mainScrollView.visibility = View.VISIBLE
+    }
+
+    private fun updateStorageSelectorUi() {
+        val currentPath = OfflineDownloadManager.getPreferredStorageFolder(this)
+        val isDownload = currentPath.contains("Download", ignoreCase = true)
+
+        val activeBg = R.drawable.bg_pill_active
+        val inactiveBg = R.drawable.bg_pill_inactive
+        val white = Color.WHITE
+        val slate = ContextCompat.getColor(this, R.color.text_slate)
+
+        if (isDownload) {
+            btnStorageDownload.setBackgroundResource(activeBg)
+            btnStorageDownload.setTextColor(white)
+            btnStorageMovies.setBackgroundResource(inactiveBg)
+            btnStorageMovies.setTextColor(slate)
+            tvActiveStoragePath.text = "Path: ${OfflineDownloadManager.PATH_DOWNLOAD}"
+        } else {
+            btnStorageMovies.setBackgroundResource(activeBg)
+            btnStorageMovies.setTextColor(white)
+            btnStorageDownload.setBackgroundResource(inactiveBg)
+            btnStorageDownload.setTextColor(slate)
+            tvActiveStoragePath.text = "Path: ${OfflineDownloadManager.PATH_MOVIES}"
+        }
+    }
+
+    private fun loadOfflineVideos() {
+        val hasPermission = OfflineDownloadManager.hasStoragePermission(this)
+        layoutStoragePermissionWarning.visibility = if (hasPermission) View.GONE else View.VISIBLE
+
+        val videos = OfflineDownloadManager.getDownloadedVideos()
+
+        if (videos.isEmpty()) {
+            layoutOfflineEmpty.visibility = View.VISIBLE
+            rvOfflineVideos.visibility = View.GONE
+        } else {
+            layoutOfflineEmpty.visibility = View.GONE
+            rvOfflineVideos.visibility = View.VISIBLE
+
+            if (offlineAdapter == null) {
+                offlineAdapter = OfflineVideoAdapter(
+                    videos = videos,
+                    onPlayClick = { video -> playOfflineVideo(video) },
+                    onDeleteClick = { video -> confirmDeleteVideo(video) }
+                )
+                rvOfflineVideos.adapter = offlineAdapter
+            } else {
+                offlineAdapter?.updateList(videos)
+            }
+        }
+    }
+
+    private fun playOfflineVideo(video: DownloadedVideo) {
+        val intent = Intent(this, PlayerActivity::class.java).apply {
+            putExtra("EXTRA_IS_OFFLINE", true)
+            putExtra("EXTRA_FILE_PATH", video.path)
+            putExtra("EXTRA_TITLE", video.title)
+            putExtra("EXTRA_TYPE_LABEL", "Offline Video")
+        }
+        startActivity(intent)
+    }
+
+    private fun confirmDeleteVideo(video: DownloadedVideo) {
+        AlertDialog.Builder(this)
+            .setTitle("Hapus Video Offline?")
+            .setMessage("Apakah kamu yakin ingin menghapus '${video.title}' dari penyimpanan perangkat?")
+            .setPositiveButton("Hapus") { dialog, _ ->
+                val deleted = OfflineDownloadManager.deleteDownloadedVideo(video)
+                if (deleted) {
+                    Toast.makeText(this, "Video berhasil dihapus", Toast.LENGTH_SHORT).show()
+                    loadOfflineVideos()
+                } else {
+                    Toast.makeText(this, "Gagal menghapus video atau berkas tidak ada", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Batal") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1001) {
+            if (OfflineDownloadManager.hasStoragePermission(this)) {
+                Toast.makeText(this, "Izin penyimpanan diberikan!", Toast.LENGTH_SHORT).show()
+                layoutStoragePermissionWarning.visibility = View.GONE
+                loadOfflineVideos()
+            } else {
+                Toast.makeText(this, "Izin penyimpanan belum diberikan", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun filterFeed(type: Int) {
@@ -205,7 +434,6 @@ class MainActivity : AppCompatActivity() {
             .into(ivHeroBackdrop)
 
         btnHeroPlay.setOnClickListener {
-            // Direct play or open detail
             openDetail(hero.detailPath)
         }
 

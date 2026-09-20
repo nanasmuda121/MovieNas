@@ -37,6 +37,7 @@ import com.movienas.data.StreamData
 import com.movienas.data.SubtitleItem
 import com.movienas.data.VideoStream
 import com.movienas.player.MoviePlayerManager
+import com.movienas.data.OfflineDownloadManager
 import com.movienas.ui.adapter.EpisodeAdapter
 import kotlinx.coroutines.launch
 
@@ -48,6 +49,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnPlayerBack: View
     private lateinit var tvPlayerTitle: TextView
     private lateinit var tvPlayerSubtitle: TextView
+    private lateinit var btnPlayerDownload: ImageView
     private lateinit var btnPlayerPip: ImageView
     private lateinit var btnPlayerWatchlist: View
     private lateinit var ivWatchlistIcon: ImageView
@@ -104,6 +106,14 @@ class PlayerActivity : AppCompatActivity() {
     private val subjectId: String by lazy { intent.getStringExtra("EXTRA_SUBJECT_ID") ?: "" }
     private val movieTitle: String by lazy { intent.getStringExtra("EXTRA_TITLE") ?: "The Fix" }
     private val typeLabel: String by lazy { intent.getStringExtra("EXTRA_TYPE_LABEL") ?: "Movie" }
+    private val isOffline: Boolean by lazy { intent.getBooleanExtra("EXTRA_IS_OFFLINE", false) }
+    private val offlineFilePath: String by lazy { intent.getStringExtra("EXTRA_FILE_PATH") ?: "" }
+    private val isShortDrama: Boolean by lazy {
+        intent.getBooleanExtra("EXTRA_IS_SHORT_DRAMA", false) ||
+        intent.getIntExtra("EXTRA_SUBJECT_TYPE", 0) == 7 ||
+        typeLabel.contains("Drama", ignoreCase = true) ||
+        typeLabel.contains("Short", ignoreCase = true)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,9 +130,14 @@ class PlayerActivity : AppCompatActivity() {
 
         initViews()
         initPlayer()
-        setupSpeedControls()
-        setupWatchlistState()
-        loadStreamData()
+
+        if (isOffline) {
+            initOfflinePlayback()
+        } else {
+            setupSpeedControls()
+            setupWatchlistState()
+            loadStreamData()
+        }
     }
 
     private fun dpToPx(dp: Float): Int {
@@ -139,6 +154,7 @@ class PlayerActivity : AppCompatActivity() {
         btnPlayerBack = findViewById(R.id.btnPlayerBack)
         tvPlayerTitle = findViewById(R.id.tvPlayerTitle)
         tvPlayerSubtitle = findViewById(R.id.tvPlayerSubtitle)
+        btnPlayerDownload = findViewById(R.id.btnPlayerDownload)
         btnPlayerPip = findViewById(R.id.btnPlayerPip)
         btnPlayerWatchlist = findViewById(R.id.btnPlayerWatchlist)
         ivWatchlistIcon = findViewById(R.id.ivWatchlistIcon)
@@ -184,6 +200,10 @@ class PlayerActivity : AppCompatActivity() {
             finish()
         }
 
+        btnPlayerDownload.setOnClickListener {
+            showDownloadDialog()
+        }
+
         btnPlayerPip.setOnClickListener {
             enterPictureInPicture()
         }
@@ -227,6 +247,107 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         setupEpisodesGrid()
+        applyOrientationLayout(resources.configuration.orientation)
+    }
+
+    private fun initOfflinePlayback() {
+        tvPlayerTitle.text = movieTitle
+        tvPlayerSubtitle.text = "Tontonan Offline • MovieNas"
+        btnPlayerDownload.visibility = View.GONE
+        btnPlayerWatchlist.visibility = View.GONE
+        cardStreamSettings.visibility = View.GONE
+        cardEpisodeGrid.visibility = View.GONE
+        layoutEpisodeNav.visibility = View.GONE
+        playerProgressBar.visibility = View.GONE
+
+        if (offlineFilePath.isNotEmpty()) {
+            MoviePlayerManager.playLocalVideo(exoPlayer ?: return, offlineFilePath)
+        } else {
+            Toast.makeText(this, "Berkas video offline tidak ditemukan", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showDownloadDialog() {
+        val streams = streamData?.streams
+        if (streams.isNullOrEmpty()) {
+            Toast.makeText(this, "Video belum siap untuk diunduh", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_download_options, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val rgQuality = dialogView.findViewById<android.widget.RadioGroup>(R.id.rgDownloadQuality)
+        val rbMovies = dialogView.findViewById<android.widget.RadioButton>(R.id.rbFolderMovies)
+        val rbDownload = dialogView.findViewById<android.widget.RadioButton>(R.id.rbFolderDownload)
+        val btnCancel = dialogView.findViewById<View>(R.id.btnDialogCancel)
+        val btnStart = dialogView.findViewById<View>(R.id.btnDialogStartDownload)
+
+        // Set current preferred storage
+        val currentStorage = OfflineDownloadManager.getPreferredStorageFolder(this)
+        if (currentStorage.contains("Download", ignoreCase = true)) {
+            rbDownload.isChecked = true
+        } else {
+            rbMovies.isChecked = true
+        }
+
+        // Add quality radio buttons
+        for (i in streams.indices) {
+            val s = streams[i]
+            val rb = android.widget.RadioButton(this).apply {
+                id = View.generateViewId()
+                val sz = if (s.sizeFormatted.isNotEmpty()) " (${s.sizeFormatted})" else ""
+                text = "${s.quality}$sz"
+                setTextColor(Color.WHITE)
+                buttonTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#E50914"))
+                setPadding(dpToPx(6f), dpToPx(4f), dpToPx(6f), dpToPx(4f))
+            }
+            rgQuality.addView(rb)
+            if (s.quality == currentQuality || (i == 0 && rgQuality.checkedRadioButtonId == -1)) {
+                rb.isChecked = true
+            }
+        }
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+
+        btnStart.setOnClickListener {
+            val checkedRadioId = rgQuality.checkedRadioButtonId
+            val selectedIndex = rgQuality.indexOfChild(dialogView.findViewById(checkedRadioId))
+            val selectedStream = if (selectedIndex in streams.indices) streams[selectedIndex] else streams.first()
+
+            val chosenPath = if (rbDownload.isChecked) {
+                OfflineDownloadManager.PATH_DOWNLOAD
+            } else {
+                OfflineDownloadManager.PATH_MOVIES
+            }
+
+            OfflineDownloadManager.setPreferredStorageFolder(this, chosenPath)
+
+            if (!OfflineDownloadManager.hasStoragePermission(this)) {
+                OfflineDownloadManager.requestStoragePermission(this)
+            }
+
+            val titleWithEp = if (isEpisodic && currentEpisode > 0) {
+                "$movieTitle - Ep $currentEpisode"
+            } else {
+                movieTitle
+            }
+
+            OfflineDownloadManager.startDownload(
+                context = this,
+                videoUrl = selectedStream.url,
+                movieTitle = titleWithEp,
+                quality = selectedStream.quality,
+                targetPath = chosenPath
+            )
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun enterFullscreenLandscape() {
@@ -254,7 +375,12 @@ class PlayerActivity : AppCompatActivity() {
         tvPlayerTitle.text = movieTitle
         tvFsTitle.text = movieTitle
 
-        val isShortDrama = typeLabel.contains("Drama", ignoreCase = true) || typeLabel.contains("Short", ignoreCase = true)
+        if (isOffline) {
+            tvPlayerSubtitle.text = "Tontonan Offline • MovieNas"
+            layoutEpisodeNav.visibility = View.GONE
+            return
+        }
+
         if (isEpisodic && currentEpisode > 0) {
             val sub = if (isShortDrama) {
                 "Drama Pendek • Episode $currentEpisode"
@@ -566,7 +692,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun enterPictureInPicture() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val aspectRatio = Rational(16, 9)
+            val aspectRatio = if (isShortDrama) Rational(9, 16) else Rational(16, 9)
             val pipParams = PictureInPictureParams.Builder()
                 .setAspectRatio(aspectRatio)
                 .build()
@@ -627,13 +753,14 @@ class PlayerActivity : AppCompatActivity() {
                             or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                     )
         } else {
-            // Portrait: restore top bar, 16:9 player card, and scrollable controls
+            // Portrait: restore top bar, player card, and scrollable controls
             playerTopBar.visibility = View.VISIBLE
             playerScrollView.visibility = View.VISIBLE
             layoutFullscreenHeader.visibility = View.GONE
 
-            val heightPx = dpToPx(225f)
-            val marginHorizPx = dpToPx(12f)
+            // Short Drama: tall 9:16 vertical player (~480dp), Movie/Series: 16:9 (~225dp)
+            val heightPx = if (isShortDrama) dpToPx(480f) else dpToPx(225f)
+            val marginHorizPx = if (isShortDrama) dpToPx(16f) else dpToPx(12f)
             val marginTopPx = dpToPx(6f)
 
             val params = RelativeLayout.LayoutParams(

@@ -164,6 +164,8 @@ class DetailActivity : AppCompatActivity() {
             putExtra("EXTRA_TITLE", detail.title)
             putExtra("EXTRA_COVER_URL", detail.coverUrl)
             putExtra("EXTRA_TYPE_LABEL", detail.typeLabel)
+            putExtra("EXTRA_SUBJECT_TYPE", detail.subjectType)
+            putExtra("EXTRA_IS_SHORT_DRAMA", detail.subjectType == 7 || detail.typeLabel.contains("Drama", ignoreCase = true))
             putExtra("EXTRA_SEASON", season)
             putExtra("EXTRA_EPISODE", episode)
             putExtra("EXTRA_IS_EPISODIC", detail.isEpisodic)

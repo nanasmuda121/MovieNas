@@ -135,4 +135,18 @@ object MoviePlayerManager {
             autoPlay = isCurrentlyPlaying
         )
     }
+
+    fun playLocalVideo(
+        player: ExoPlayer,
+        filePath: String,
+        autoPlay: Boolean = true
+    ) {
+        val fileUri = Uri.fromFile(java.io.File(filePath))
+        val mediaItem = MediaItem.fromUri(fileUri)
+        player.setMediaItem(mediaItem)
+        player.prepare()
+        if (autoPlay) {
+            player.play()
+        }
+    }
 }

@@ -88,6 +88,20 @@
 
         </LinearLayout>
 
+        <!-- Download Button -->
+        <ImageView
+            android:id="@+id/btnPlayerDownload"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_pill_topbar"
+            android:clickable="true"
+            android:contentDescription="Download Video"
+            android:focusable="true"
+            android:padding="8dp"
+            android:src="@drawable/ic_download"
+            app:tint="@color/text_white" />
+
         <!-- PiP Button -->
         <ImageView
             android:id="@+id/btnPlayerPip"
