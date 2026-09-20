@@ -156,7 +156,7 @@
         android:layout_below="@id/searchHeader"
         android:clipToPadding="false"
         android:overScrollMode="never"
-        android:padding="16dp" />
+        android:padding="8dp" />
 
     <TextView
         android:id="@+id/tvEmptySearch"

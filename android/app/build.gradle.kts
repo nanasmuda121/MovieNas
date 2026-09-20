@@ -8,13 +8,24 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.movienas.app"
+        applicationId = "com.movienas.nanas"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("movienas-release.jks")
+            storePassword = "movienaspassword"
+            keyAlias = "movienas"
+            keyPassword = "movienaspassword"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
     }
 
     buildTypes {
@@ -25,7 +36,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
         debug {
             applicationIdSuffix = ".debug"

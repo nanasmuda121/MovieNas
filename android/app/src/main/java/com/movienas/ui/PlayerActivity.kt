@@ -2,6 +2,7 @@ package com.movienas.ui
 
 import android.app.PictureInPictureParams
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
@@ -57,7 +58,17 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var playerProgressBar: ProgressBar
     private lateinit var playerScrollView: NestedScrollView
 
+    // Fullscreen Landscape Controls
+    private lateinit var layoutFullscreenHeader: LinearLayout
+    private lateinit var btnCloseFullscreen: View
+    private lateinit var tvFsTitle: TextView
+    private lateinit var btnFsResize: ImageView
+    private lateinit var btnFsPip: ImageView
+    private var isFullscreenLandscape: Boolean = false
+
+    // Quick controls (Portrait)
     private lateinit var layoutPlayerQuickControls: LinearLayout
+    private lateinit var btnFullscreenLandscape: View
     private lateinit var btnPlayerResize: View
     private lateinit var tvResizeLabel: TextView
 
@@ -138,7 +149,17 @@ class PlayerActivity : AppCompatActivity() {
         playerProgressBar = findViewById(R.id.playerProgressBar)
         playerScrollView = findViewById(R.id.playerScrollView)
 
+        // Fullscreen Landscape Views
+        layoutFullscreenHeader = findViewById(R.id.layoutFullscreenHeader)
+        btnCloseFullscreen = findViewById(R.id.btnCloseFullscreen)
+        tvFsTitle = findViewById(R.id.tvFsTitle)
+        btnFsResize = findViewById(R.id.btnFsResize)
+        btnFsPip = findViewById(R.id.btnFsPip)
+        tvFsTitle.text = movieTitle
+
+        // Quick Controls
         layoutPlayerQuickControls = findViewById(R.id.layoutPlayerQuickControls)
+        btnFullscreenLandscape = findViewById(R.id.btnFullscreenLandscape)
         btnPlayerResize = findViewById(R.id.btnPlayerResize)
         tvResizeLabel = findViewById(R.id.tvResizeLabel)
 
@@ -171,6 +192,24 @@ class PlayerActivity : AppCompatActivity() {
             cycleResizeMode()
         }
 
+        // Tonton Fullscreen Landscape Click
+        btnFullscreenLandscape.setOnClickListener {
+            enterFullscreenLandscape()
+        }
+
+        // Tutup Fullscreen Landscape Click
+        btnCloseFullscreen.setOnClickListener {
+            exitFullscreenLandscape()
+        }
+
+        btnFsResize.setOnClickListener {
+            cycleResizeMode()
+        }
+
+        btnFsPip.setOnClickListener {
+            enterPictureInPicture()
+        }
+
         btnPrevEp.setOnClickListener {
             if (currentEpisode > 1) {
                 currentEpisode--
@@ -190,16 +229,39 @@ class PlayerActivity : AppCompatActivity() {
         setupEpisodesGrid()
     }
 
+    private fun enterFullscreenLandscape() {
+        isFullscreenLandscape = true
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        applyOrientationLayout(Configuration.ORIENTATION_LANDSCAPE)
+    }
+
+    private fun exitFullscreenLandscape() {
+        isFullscreenLandscape = false
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        applyOrientationLayout(Configuration.ORIENTATION_PORTRAIT)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (isFullscreenLandscape) {
+            exitFullscreenLandscape()
+            return
+        }
+        super.onBackPressed()
+    }
+
     private fun updateTitleInfo() {
         tvPlayerTitle.text = movieTitle
+        tvFsTitle.text = movieTitle
 
         val isShortDrama = typeLabel.contains("Drama", ignoreCase = true) || typeLabel.contains("Short", ignoreCase = true)
         if (isEpisodic && currentEpisode > 0) {
-            tvPlayerSubtitle.text = if (isShortDrama) {
+            val sub = if (isShortDrama) {
                 "Drama Pendek • Episode $currentEpisode"
             } else {
                 "Season $currentSeason • Episode $currentEpisode"
             }
+            tvPlayerSubtitle.text = sub
             tvEpisodeIndicator.text = "Ep $currentEpisode"
             layoutEpisodeNav.visibility = View.VISIBLE
             btnPrevEp.visibility = if (currentEpisode > 1) View.VISIBLE else View.INVISIBLE
@@ -211,7 +273,6 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun setupEpisodesGrid() {
         if (isEpisodic && (episodesList.isNotEmpty() || currentEpisode > 0)) {
-            // Generate episodes list if not passed from previous screen
             if (episodesList.isEmpty()) {
                 val count = maxOf(currentEpisode, 10)
                 episodesList = ArrayList((1..count).toList())
@@ -273,6 +334,13 @@ class PlayerActivity : AppCompatActivity() {
         )
         playerView.player = exoPlayer
         playerView.resizeMode = currentResizeMode
+
+        // Sync close button header in fullscreen with player controller visibility
+        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
+            if (isFullscreenLandscape || resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                layoutFullscreenHeader.visibility = visibility
+            }
+        })
     }
 
     private fun loadStreamData() {
@@ -513,6 +581,7 @@ class PlayerActivity : AppCompatActivity() {
         if (isInPictureInPictureMode) {
             playerTopBar.visibility = View.GONE
             playerScrollView.visibility = View.GONE
+            layoutFullscreenHeader.visibility = View.GONE
             playerView.useController = false
 
             val params = RelativeLayout.LayoutParams(
@@ -529,6 +598,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        isFullscreenLandscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
         applyOrientationLayout(newConfig.orientation)
     }
 
@@ -537,10 +607,11 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
 
-        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE || isFullscreenLandscape) {
             // Fullscreen Landscape: hide top bar and scroll content, expand player to fill screen
             playerTopBar.visibility = View.GONE
             playerScrollView.visibility = View.GONE
+            layoutFullscreenHeader.visibility = View.VISIBLE
 
             val params = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
@@ -559,6 +630,7 @@ class PlayerActivity : AppCompatActivity() {
             // Portrait: restore top bar, 16:9 player card, and scrollable controls
             playerTopBar.visibility = View.VISIBLE
             playerScrollView.visibility = View.VISIBLE
+            layoutFullscreenHeader.visibility = View.GONE
 
             val heightPx = dpToPx(225f)
             val marginHorizPx = dpToPx(12f)

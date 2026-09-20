@@ -170,6 +170,94 @@
                 android:indeterminateTint="@color/brand_red"
                 android:visibility="visible" />
 
+            <!-- Fullscreen Landscape Top Header (Close Button, Title, Aspect, PiP) -->
+            <LinearLayout
+                android:id="@+id/layoutFullscreenHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:background="#B3000000"
+                android:elevation="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="12dp"
+                android:visibility="gone">
+
+                <!-- Close / Exit Fullscreen Button -->
+                <LinearLayout
+                    android:id="@+id/btnCloseFullscreen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_pill_topbar"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_marginEnd="6dp"
+                        android:src="@drawable/ic_close"
+                        app:tint="@color/text_white" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tutup Layar Penuh"
+                        android:textColor="@color/text_white"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvFsTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Judul Tayangan"
+                    android:textColor="@color/text_white"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- Aspect Ratio Button in Fullscreen -->
+                <ImageView
+                    android:id="@+id/btnFsResize"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_pill_topbar"
+                    android:clickable="true"
+                    android:contentDescription="Resize"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_aspect_ratio"
+                    app:tint="@color/text_white" />
+
+                <!-- PiP Button in Fullscreen -->
+                <ImageView
+                    android:id="@+id/btnFsPip"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/bg_pill_topbar"
+                    android:clickable="true"
+                    android:contentDescription="PiP"
+                    android:focusable="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_pip"
+                    app:tint="@color/text_white" />
+
+            </LinearLayout>
+
         </RelativeLayout>
 
     </androidx.cardview.widget.CardView>
@@ -200,10 +288,41 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
+                <!-- Tombol Tonton Fullscreen Landscape -->
+                <LinearLayout
+                    android:id="@+id/btnFullscreenLandscape"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:background="@drawable/bg_button_red"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginEnd="6dp"
+                        android:src="@drawable/ic_fullscreen"
+                        app:tint="@color/text_white" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Layar Penuh"
+                        android:textColor="@color/text_white"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- Tombol Rasio Aspek -->
                 <LinearLayout
                     android:id="@+id/btnPlayerResize"
                     android:layout_width="wrap_content"
-                    android:layout_height="28dp"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="8dp"
                     android:background="@drawable/bg_pill_topbar"
                     android:clickable="true"
                     android:focusable="true"

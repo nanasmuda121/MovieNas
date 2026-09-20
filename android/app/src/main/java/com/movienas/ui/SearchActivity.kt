@@ -34,7 +34,7 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var searchTabDrama: TextView
 
     private var currentType: Int = 0 // 0: All, 1: Movie, 2: Series, 7: Short Drama
-    private var movieAdapter: MovieCardAdapter? = null
+    private var movieAdapter: com.movienas.ui.adapter.SearchCardAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +64,7 @@ class SearchActivity : AppCompatActivity() {
         searchTabDrama = findViewById(R.id.searchTabDrama)
 
         rvSearchResults.layoutManager = GridLayoutManager(this, 3)
-        movieAdapter = MovieCardAdapter(emptyList()) { movie ->
+        movieAdapter = com.movienas.ui.adapter.SearchCardAdapter(emptyList()) { movie ->
             val intent = Intent(this, DetailActivity::class.java).apply {
                 putExtra("EXTRA_DETAIL_PATH", movie.detailPath)
             }
