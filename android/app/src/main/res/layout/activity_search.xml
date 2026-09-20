@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
+
+    <!-- Top Search Bar -->
+    <LinearLayout
+        android:id="@+id/searchHeader"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_alignParentTop="true"
+        android:background="@color/surface_dark"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
+
+        <ImageView
+            android:id="@+id/btnSearchBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="@color/text_white"
+            android:contentDescription="Back" />
+
+        <EditText
+            android:id="@+id/etSearchQuery"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_search_bar"
+            android:hint="@string/search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textColor="@color/text_white"
+            android:textColorHint="@color/text_slate"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:id="@+id/btnSearchSubmit"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_button_red"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_menu_search"
+            android:tint="@color/text_white"
+            android:contentDescription="Submit Search" />
+
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/searchProgressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:indeterminateTint="@color/brand_red"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSearchResults"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/searchHeader"
+        android:clipToPadding="false"
+        android:padding="16dp" />
+
+    <TextView
+        android:id="@+id/tvEmptySearch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="Ketik judul untuk mencari film atau serial"
+        android:textColor="@color/text_slate"
+        android:textSize="14sp" />
+
+</RelativeLayout>

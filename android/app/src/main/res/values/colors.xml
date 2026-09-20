@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#05050A</color>
+    <color name="surface_dark">#0C0C16</color>
+    <color name="card_dark">#111122</color>
+    <color name="brand_red">#FF0A1E</color>
+    <color name="brand_red_glow">#40FF0A1E</color>
+    <color name="accent_gold">#F5C518</color>
+    <color name="text_white">#FFFFFF</color>
+    <color name="text_slate">#94A3B8</color>
+    <color name="text_dark_slate">#64748B</color>
+    <color name="divider_color">#1E293B</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+</resources>
