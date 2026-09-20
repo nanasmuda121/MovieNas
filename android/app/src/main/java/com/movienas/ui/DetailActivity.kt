@@ -33,6 +33,7 @@ class DetailActivity : AppCompatActivity() {
     private lateinit var tvDetailMeta: TextView
     private lateinit var tvDetailRating: TextView
     private lateinit var btnDetailPlay: View
+    private lateinit var tvDetailPlayText: TextView
     private lateinit var tvDetailSynopsis: TextView
 
     // Episodes
@@ -66,6 +67,7 @@ class DetailActivity : AppCompatActivity() {
         tvDetailMeta = findViewById(R.id.tvDetailMeta)
         tvDetailRating = findViewById(R.id.tvDetailRating)
         btnDetailPlay = findViewById(R.id.btnDetailPlay)
+        tvDetailPlayText = findViewById(R.id.tvDetailPlayText)
         tvDetailSynopsis = findViewById(R.id.tvDetailSynopsis)
 
         episodesSection = findViewById(R.id.episodesSection)
@@ -130,7 +132,7 @@ class DetailActivity : AppCompatActivity() {
             selectedSeason = firstSeason.seasonNumber
             selectedEpisode = firstSeason.allEpisodes.firstOrNull() ?: 1
 
-            btnDetailPlay.text = "▶ Tonton Episode $selectedEpisode"
+            tvDetailPlayText.text = "▶ Tonton Episode $selectedEpisode"
             btnDetailPlay.setOnClickListener {
                 startPlayer(selectedSeason, selectedEpisode)
             }
@@ -138,13 +140,13 @@ class DetailActivity : AppCompatActivity() {
             rvEpisodes.layoutManager = GridLayoutManager(this, 5)
             val episodeAdapter = EpisodeAdapter(firstSeason.allEpisodes, selectedEpisode) { clickedEp ->
                 selectedEpisode = clickedEp
-                btnDetailPlay.text = "▶ Tonton Episode $selectedEpisode"
+                tvDetailPlayText.text = "▶ Tonton Episode $selectedEpisode"
                 startPlayer(selectedSeason, selectedEpisode)
             }
             rvEpisodes.adapter = episodeAdapter
         } else {
             episodesSection.visibility = View.GONE
-            btnDetailPlay.text = "▶ Tonton Film Sekarang"
+            tvDetailPlayText.text = "▶ Tonton Film Sekarang"
             btnDetailPlay.setOnClickListener {
                 startPlayer(0, 0)
             }
