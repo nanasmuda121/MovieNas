@@ -1,4 +1,4 @@
-const captionsHandler = require('../../api/captions');
+const captionsHandler = require('../../lib/handlers/captions');
 const { enforceSameOrigin } = require('../../lib/security');
 
 export default async function handler(req, res) {

@@ -1,4 +1,4 @@
-const detailHandler = require('../../../api/detail');
+const detailHandler = require('../../../lib/handlers/detail');
 const { enforceSameOrigin } = require('../../../lib/security');
 
 export default async function handler(req, res) {

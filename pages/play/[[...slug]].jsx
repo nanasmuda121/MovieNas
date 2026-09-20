@@ -221,7 +221,6 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                     className="native-video"
                     controls
                     playsInline
-                    crossOrigin="anonymous"
                     preload="metadata"
                     src={currentSrc}
                   >
@@ -340,7 +339,6 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                   className="native-video"
                   controls
                   playsInline
-                  crossOrigin="anonymous"
                   preload="metadata"
                   src={currentSrc}
                 >

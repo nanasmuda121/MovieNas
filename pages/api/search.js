@@ -1,4 +1,4 @@
-const searchHandler = require('../../api/search');
+const searchHandler = require('../../lib/handlers/search');
 const { enforceSameOrigin } = require('../../lib/security');
 
 export default async function handler(req, res) {

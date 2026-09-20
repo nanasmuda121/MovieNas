@@ -1,9 +1,10 @@
-const proxyStreamHandler = require('../../api/proxy-stream');
+const proxyStreamHandler = require('../../lib/handlers/proxy-stream');
 
 export const config = {
   api: {
     responseLimit: false,
     bodyParser: false,
+    externalResolver: true,
   },
 };
 

@@ -1,4 +1,4 @@
-const trendingHandler = require('../../api/trending');
+const trendingHandler = require('../../lib/handlers/trending');
 const { enforceSameOrigin } = require('../../lib/security');
 
 export default async function handler(req, res) {

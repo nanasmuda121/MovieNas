@@ -1,4 +1,4 @@
-const subtitleHandler = require('../../api/subtitle');
+const subtitleHandler = require('../../lib/handlers/subtitle');
 const { enforceSameOrigin } = require('../../lib/security');
 
 export default async function handler(req, res) {
