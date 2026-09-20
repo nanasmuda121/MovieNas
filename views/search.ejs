@@ -1,7 +1,7 @@
 <%- include('partials/header', { 
   pageTitle: query ? `Hasil Pencarian "${query}" — MovieNas` : 'Pencarian Film & Series — MovieNas',
   metaDescription: query ? `Nonton film & series terkait "${query}" dengan subtitle Indonesia di MovieNas.` : 'Cari ribuan film & series sub Indo kualitas HD.',
-  activeNav: currentType === 1 ? 'movies' : (currentType === 2 ? 'series' : '')
+  activeNav: currentSlug === 'movie' ? 'movies' : (currentSlug === 'series' ? 'series' : (currentSlug === 'drama' ? 'drama' : 'search'))
 }) %>
 
 <!-- Search Main Container -->
@@ -9,20 +9,19 @@
 
   <!-- Search Header & Input -->
   <div class="search-header-bar">
-    <form action="/search" method="GET" class="search-input-large-wrap">
+    <form onsubmit="event.preventDefault(); submitMainSearch();" class="search-input-large-wrap">
       <i class="fa-solid fa-magnifying-glass search-icon-lg"></i>
       <input
         type="text"
-        name="q"
         id="mainSearchInput"
         class="search-input-large"
-        placeholder="Ketik judul film atau serial (contoh: Avatar, Spider-Man, John Wick, Wednesday)..."
+        placeholder="Ketik judul film atau serial (contoh: Avatar, Spider-Man, John Wick, Istri)..."
         value="<%= typeof query !== 'undefined' ? query : '' %>"
+        autocomplete="off"
         autofocus
       />
-      <input type="hidden" name="type" id="searchTypeInput" value="<%= currentType %>" />
       <% if (query) { %>
-        <a href="/search?type=<%= currentType %>" class="search-clear-btn" style="display: flex; align-items: center; justify-content: center;">
+        <a href="/search/<%= currentSlug %>" class="search-clear-btn" style="display: flex; align-items: center; justify-content: center;" title="Hapus kata kunci">
           <i class="fa-solid fa-xmark"></i>
         </a>
       <% } %>
@@ -30,14 +29,17 @@
 
     <!-- Filter Pills -->
     <div class="filter-pills">
-      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=0" class="filter-pill <%= currentType === 0 ? 'active' : '' %>">
+      <a href="/search/all<%= query ? '/' + encodeURIComponent(query) : '' %>" class="filter-pill <%= currentSlug === 'all' ? 'active' : '' %>">
         Semua Kategori
       </a>
-      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=1" class="filter-pill <%= currentType === 1 ? 'active' : '' %>">
+      <a href="/search/movie<%= query ? '/' + encodeURIComponent(query) : '' %>" class="filter-pill <%= currentSlug === 'movie' ? 'active' : '' %>">
         <i class="fa-solid fa-film"></i> Film (Movie)
       </a>
-      <a href="/search?<%= query ? `q=${encodeURIComponent(query)}&` : '' %>type=2" class="filter-pill <%= currentType === 2 ? 'active' : '' %>">
+      <a href="/search/series<%= query ? '/' + encodeURIComponent(query) : '' %>" class="filter-pill <%= currentSlug === 'series' ? 'active' : '' %>">
         <i class="fa-solid fa-tv"></i> Serial TV (Series)
+      </a>
+      <a href="/search/drama<%= query ? '/' + encodeURIComponent(query) : '' %>" class="filter-pill <%= currentSlug === 'drama' ? 'active' : '' %>">
+        <i class="fa-solid fa-clapperboard text-pink-400"></i> Drama Pendek
       </a>
     </div>
 
@@ -78,6 +80,17 @@
 </main>
 
 <script>
+  function submitMainSearch() {
+    const input = document.getElementById('mainSearchInput');
+    const q = (input ? input.value : '').trim();
+    const currentSlug = '<%= currentSlug %>';
+    if (q) {
+      window.location.href = `/search/${currentSlug}/${encodeURIComponent(q)}`;
+    } else {
+      window.location.href = `/search/${currentSlug}`;
+    }
+  }
+
   // Frontend Pattern: Debounce Function for Live Search
   function debounce(fn, delay) {
     let timer = null;
@@ -91,12 +104,14 @@
   const resultsContainer = document.getElementById('searchResultsContainer');
   const statText = document.getElementById('searchStatText');
   const currentType = <%= currentType %>;
+  const currentSlug = '<%= currentSlug %>';
 
   if (searchInput && resultsContainer) {
     const performLiveSearch = debounce(async (q) => {
       const trimmed = q.trim();
       if (!trimmed) {
-        window.location.href = `/search?type=${currentType}`;
+        history.replaceState(null, '', `/search/${currentSlug}`);
+        window.location.href = `/search/${currentSlug}`;
         return;
       }
       
@@ -106,12 +121,15 @@
         const data = await res.json();
         const items = data.data || [];
 
-        // Update URL state without reload
-        history.replaceState(null, '', `/search?q=${encodeURIComponent(trimmed)}&type=${currentType}`);
+        // Update URL state to /search/:type/:query
+        history.replaceState(null, '', `/search/${currentSlug}/${encodeURIComponent(trimmed)}`);
 
         if (items.length > 0) {
           statText.innerHTML = `Menemukan <strong>${items.length}</strong> hasil pencarian untuk "<strong>${trimmed}</strong>":`;
           resultsContainer.innerHTML = items.map(item => StreamBoxApp.createPosterCard(item)).join('');
+          if (typeof window.syncAllWatchlistButtons === 'function') {
+            window.syncAllWatchlistButtons();
+          }
         } else {
           statText.innerHTML = `Tidak ada hasil ditemukan untuk "<strong>${trimmed}</strong>".`;
           resultsContainer.innerHTML = `

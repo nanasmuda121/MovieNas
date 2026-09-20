@@ -1,12 +1,9 @@
 const movie = require('../lib/movie');
+const { searchCache } = require('../lib/cache');
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(403).end();
   }
 
   if (req.method !== 'GET') {
@@ -28,7 +25,14 @@ module.exports = async (req, res) => {
     const subjectType = parseInt(req.query.type || req.query.subjectType, 10) || 0;
     const lang = req.query.lang || 'id';
 
-    const data = await movie.search(keyword, page, perPage, subjectType, lang);
+    const cacheKey = `search_${keyword.toLowerCase()}_${page}_${perPage}_${subjectType}_${lang}`;
+    let data = searchCache.get(cacheKey);
+    if (!data) {
+      data = await movie.search(keyword, page, perPage, subjectType, lang);
+      if (data && data.length > 0) {
+        searchCache.set(cacheKey, data);
+      }
+    }
 
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=600');
     return res.status(200).json({

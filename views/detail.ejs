@@ -1,5 +1,8 @@
 <%
-  const isSeries = detail.typeLabel === 'Series' || detail.subjectType === 2;
+  const subType = Number(detail.subjectType) || 1;
+  const isShortDrama = subType === 7 || detail.typeLabel === 'Short Drama';
+  const isSeries = subType === 2 || detail.typeLabel === 'Series';
+  const isEpisodic = isSeries || isShortDrama;
   const bgImg = detail.coverUrl || '';
   const metaDesc = detail.description ? detail.description.slice(0, 160) + '...' : `Nonton ${detail.title} subtitle Indonesia gratis di MovieNas.`;
 %>
@@ -7,8 +10,8 @@
   pageTitle: `${detail.title} — Streaming MovieNas`,
   metaDescription: metaDesc,
   ogImage: detail.coverUrl,
-  ogType: isSeries ? 'video.tv_show' : 'video.movie',
-  activeNav: isSeries ? 'series' : 'movies'
+  ogType: isEpisodic ? 'video.tv_show' : 'video.movie',
+  activeNav: isSeries ? 'series' : (isShortDrama ? 'series' : 'movies')
 }) %>
 
 <!-- Detail Backdrop Header (Server-Side Rendered!) -->
@@ -23,10 +26,10 @@
         <div class="detail-poster-actions">
           <% 
             let directPlayUrl = `/play/${encodeURIComponent(detail.detailPath)}`;
-            if (isSeries && detail.resource && detail.resource.seasons && detail.resource.seasons.length > 0) {
+            if (isEpisodic && detail.resource && detail.resource.seasons && detail.resource.seasons.length > 0) {
               const s1 = detail.resource.seasons[0];
               const ep1 = s1.allEpisodes?.[0] || 1;
-              directPlayUrl = `/play/${encodeURIComponent(detail.detailPath)}/${ep1}/${s1.seasonNumber}`;
+              directPlayUrl = `/play/${encodeURIComponent(detail.detailPath)}/${ep1}/${s1.seasonNumber || 1}`;
             }
           %>
           <a href="<%= directPlayUrl %>" class="btn btn-primary" style="width: 100%;">
@@ -57,7 +60,9 @@
     <!-- Right: Metadata & Synopsis -->
     <div class="detail-info-col">
       <div class="hero-badge-row">
-        <span class="badge <%= isSeries ? 'badge-type-series' : 'badge-type-movie' %>"><%= isSeries ? 'Series' : 'Movie' %></span>
+        <span class="badge <%= isShortDrama ? 'badge-type-shortdrama' : (isSeries ? 'badge-type-series' : 'badge-type-movie') %>">
+          <%= isShortDrama ? 'Short Drama' : (isSeries ? 'Series' : 'Movie') %>
+        </span>
         <span class="badge badge-rating">
           <i class="fa-solid fa-star"></i>
           <span><%= detail.imdbRating || '8.0' %></span>
@@ -67,7 +72,13 @@
         </span>
         <span class="badge badge-quality">Full HD 1080p</span>
         <span class="badge badge-meta"><%= detail.year || (detail.releaseDate ? detail.releaseDate.split('-')[0] : '2024') %></span>
-        <span class="badge badge-meta"><%= detail.durationFormatted || (isSeries ? 'Series' : 'N/A') %></span>
+        <span class="badge badge-meta">
+          <% if (isEpisodic) { %>
+            <i class="fa-solid fa-list-ol"></i> <%= detail.totalEpisodes ? `${detail.totalEpisodes} Episode` : (isShortDrama ? 'Drama Pendek' : 'Series') %>
+          <% } else { %>
+            <i class="fa-solid fa-clock"></i> <%= detail.durationFormatted || 'Film' %>
+          <% } %>
+        </span>
         <% if (detail.countryName) { %>
           <span class="badge badge-meta"><%= detail.countryName %></span>
         <% } %>
@@ -117,12 +128,12 @@
 </section>
 
 <!-- Seasons & Episodes Section (Server-Side Rendered!) -->
-<% if (isSeries && detail.resource && detail.resource.seasons && detail.resource.seasons.length > 0) { %>
+<% if (isEpisodic && detail.resource && detail.resource.seasons && detail.resource.seasons.length > 0) { %>
   <section class="seasons-section">
     <div class="section-header">
       <div class="section-title-wrap">
         <div class="section-title-bar"></div>
-        <h2 class="section-title">Daftar Episode</h2>
+        <h2 class="section-title"><%= isShortDrama ? 'Daftar Episode Drama Pendek' : 'Daftar Episode' %></h2>
       </div>
     </div>
 
@@ -130,7 +141,7 @@
     <div class="season-tabs" id="seasonTabs">
       <% detail.resource.seasons.forEach(function(s, idx) { %>
         <button class="season-tab <%= idx === 0 ? 'active' : '' %>" onclick="switchSeasonSSR(<%= idx %>)">
-          Season <%= s.seasonNumber || idx + 1 %>
+          <%= isShortDrama ? 'Episode' : `Season ${s.seasonNumber || idx + 1}` %>
         </button>
       <% }); %>
     </div>
