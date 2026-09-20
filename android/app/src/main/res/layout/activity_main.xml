@@ -159,6 +159,68 @@
 
     </LinearLayout>
 
+    <!-- Network Offline Warning Banner -->
+    <LinearLayout
+        android:id="@+id/layoutNetworkOfflineBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottomNavBar"
+        android:background="@drawable/bg_network_offline_banner"
+        android:elevation="14dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="10dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_download"
+            app:tint="@color/text_white" />
+
+        <TextView
+            android:id="@+id/tvNetworkOfflineMessage"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Jaringan error mohon periksa koneksi internet anda atau buka tab Download untuk menonton video offline"
+            android:textColor="@color/text_white"
+            android:textSize="12sp"
+            android:lineSpacingMultiplier="1.2" />
+
+        <TextView
+            android:id="@+id/btnBannerOpenOffline"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_button_secondary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="Buka Download"
+            android:textColor="@color/text_white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnDismissOfflineBanner"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="6dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="4dp"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_white" />
+
+    </LinearLayout>
+
     <!-- Bottom Navigation Bar -->
     <LinearLayout
         android:id="@+id/bottomNavBar"
@@ -478,6 +540,88 @@
                         android:text="Path: /storage/emulated/0/Movies/MovieNas"
                         android:textColor="@color/text_slate"
                         android:textSize="10sp" />
+
+                    <!-- Gallery Visibility & Privacy Divider -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="#1AFFFFFF" />
+
+                    <!-- Gallery Visibility Switch Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tampilkan di Galeri HP"
+                                android:textColor="@color/text_white"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvGalleryVisibilityStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="File normal (terlihat di galeri)"
+                                android:textColor="@color/text_slate"
+                                android:textSize="10sp" />
+
+                        </LinearLayout>
+
+                        <androidx.appcompat.widget.SwitchCompat
+                            android:id="@+id/switchGalleryVisibility"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:thumbTint="@color/brand_red"
+                            app:trackTint="#40FFFFFF" />
+
+                    </LinearLayout>
+
+                    <!-- Batch Toggle Button for All Existing Videos -->
+                    <LinearLayout
+                        android:id="@+id/btnBatchToggleGallery"
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_button_secondary"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp">
+
+                        <ImageView
+                            android:id="@+id/ivBatchToggleIcon"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:layout_marginEnd="6dp"
+                            android:src="@drawable/ic_layers"
+                            app:tint="@color/accent_gold" />
+
+                        <TextView
+                            android:id="@+id/tvBatchToggleLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Ubah Status Semua Video yang Ada"
+                            android:textColor="@color/text_white"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
 
                     <!-- Permission Warning & Button -->
                     <LinearLayout

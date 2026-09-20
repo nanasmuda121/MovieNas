@@ -4,6 +4,10 @@ import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
 import { isWatchlisted, toggleWatchlist, saveHistory, getHistory } from '../../lib/clientStorage';
 
+export const config = {
+  regions: ['sin1'],
+};
+
 export default function PlayerPage({ stream, detail, episode: initialEp, season: initialSe }) {
   const router = useRouter();
   const videoRef = useRef(null);

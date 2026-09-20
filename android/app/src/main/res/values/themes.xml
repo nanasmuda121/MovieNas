@@ -29,4 +29,12 @@
         <item name="android:windowExitAnimation">@anim/slide_out_right</item>
     </style>
 
+    <!-- Splash Screen Theme (Netflix Pitch Black) -->
+    <style name="Theme.MovieNas.Splash" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
 </resources>

@@ -1,6 +1,7 @@
 const proxyStreamHandler = require('../../lib/handlers/proxy-stream');
 
 export const config = {
+  regions: ['sin1'],
   api: {
     responseLimit: false,
     bodyParser: false,

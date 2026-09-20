@@ -31,8 +31,10 @@ class OfflineVideoAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = videos[position]
         holder.tvOfflineTitle.text = item.title
+        val isHidden = item.file.name.startsWith(".")
+        val privacyLabel = if (isHidden) "🔒 Tersembunyi" else "👁 Galeri"
         val folderName = if (item.path.contains("Movies")) "Movies/MovieNas" else "Download/MovieNas"
-        holder.tvOfflineMeta.text = "$folderName • ${item.sizeFormatted}"
+        holder.tvOfflineMeta.text = "$privacyLabel • $folderName • ${item.sizeFormatted}"
         holder.tvOfflineDate.text = item.dateFormatted
 
         holder.itemView.setOnClickListener {

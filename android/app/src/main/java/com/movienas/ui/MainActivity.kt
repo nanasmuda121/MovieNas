@@ -3,6 +3,10 @@ package com.movienas.ui
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Bundle
 import android.text.Html
@@ -17,6 +21,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
@@ -82,6 +87,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutOfflineEmpty: View
     private var offlineAdapter: OfflineVideoAdapter? = null
 
+    // Gallery Privacy & Visibility Views
+    private lateinit var tvGalleryVisibilityStatus: TextView
+    private lateinit var switchGalleryVisibility: SwitchCompat
+    private lateinit var btnBatchToggleGallery: View
+    private lateinit var tvBatchToggleLabel: TextView
+
+    // Network Offline Banner Views & State
+    private lateinit var layoutNetworkOfflineBanner: View
+    private lateinit var tvNetworkOfflineMessage: TextView
+    private lateinit var btnBannerOpenOffline: View
+    private lateinit var btnDismissOfflineBanner: View
+    private var connectivityManager: ConnectivityManager? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private var isCurrentlyOnline: Boolean = true
+    private var hasEverLoadedHome: Boolean = false
+
     // Hero Banner Views
     private lateinit var ivHeroBackdrop: ImageView
     private lateinit var tvHeroTrendingBadge: TextView
@@ -102,6 +123,7 @@ class MainActivity : AppCompatActivity() {
 
         initViews()
         setupListeners()
+        setupNetworkMonitoring()
         loadHomeFeed()
         maybeShowSupportDeveloperPopup()
     }
@@ -111,6 +133,13 @@ class MainActivity : AppCompatActivity() {
         if (::layoutOffline.isInitialized && layoutOffline.visibility == View.VISIBLE) {
             loadOfflineVideos()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            networkCallback?.let { connectivityManager?.unregisterNetworkCallback(it) }
+        } catch (_: Exception) {}
     }
 
     private fun initViews() {
@@ -160,6 +189,18 @@ class MainActivity : AppCompatActivity() {
         btnGrantStoragePermission = findViewById(R.id.btnGrantStoragePermission)
         rvOfflineVideos = findViewById(R.id.rvOfflineVideos)
         layoutOfflineEmpty = findViewById(R.id.layoutOfflineEmpty)
+
+        // Gallery Privacy Views
+        tvGalleryVisibilityStatus = findViewById(R.id.tvGalleryVisibilityStatus)
+        switchGalleryVisibility = findViewById(R.id.switchGalleryVisibility)
+        btnBatchToggleGallery = findViewById(R.id.btnBatchToggleGallery)
+        tvBatchToggleLabel = findViewById(R.id.tvBatchToggleLabel)
+
+        // Network Offline Banner Views
+        layoutNetworkOfflineBanner = findViewById(R.id.layoutNetworkOfflineBanner)
+        tvNetworkOfflineMessage = findViewById(R.id.tvNetworkOfflineMessage)
+        btnBannerOpenOffline = findViewById(R.id.btnBannerOpenOffline)
+        btnDismissOfflineBanner = findViewById(R.id.btnDismissOfflineBanner)
 
         rvOfflineVideos.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
 
@@ -240,6 +281,131 @@ class MainActivity : AppCompatActivity() {
         btnGrantStoragePermission.setOnClickListener {
             OfflineDownloadManager.requestStoragePermission(this)
         }
+
+        // Network Offline Banner Clicks
+        btnBannerOpenOffline.setOnClickListener {
+            selectNavTab(4)
+            showOfflineTab()
+            hideNetworkOfflineBanner()
+        }
+
+        btnDismissOfflineBanner.setOnClickListener {
+            hideNetworkOfflineBanner()
+        }
+
+        // Gallery Visibility Switch
+        switchGalleryVisibility.setOnCheckedChangeListener { _, isChecked ->
+            OfflineDownloadManager.setShowInGallery(this, isChecked)
+            updateGalleryVisibilityUi()
+            val msg = if (isChecked) {
+                "Unduhan berikutnya akan terlihat di galeri HP"
+            } else {
+                "Unduhan berikutnya diawali tanda '.' (tersembunyi dari galeri HP)"
+            }
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+
+        // Batch Toggle Existing Videos
+        btnBatchToggleGallery.setOnClickListener {
+            val targetShow = switchGalleryVisibility.isChecked
+            val actionTitle = if (targetShow) "Tampilkan Semua di Galeri?" else "Sembunyikan Semua dari Galeri?"
+            val actionMsg = if (targetShow) {
+                "Semua video offline yang sudah diunduh akan dirubah namanya menjadi normal sehingga muncul di galeri HP."
+            } else {
+                "Semua video offline yang sudah diunduh akan diawali tanda '.' sehingga otomatis tersembunyi dari galeri HP."
+            }
+
+            AlertDialog.Builder(this)
+                .setTitle(actionTitle)
+                .setMessage(actionMsg)
+                .setPositiveButton("Lanjutkan") { dialog, _ ->
+                    val changed = OfflineDownloadManager.batchSetGalleryVisibility(this, targetShow)
+                    updateGalleryVisibilityUi()
+                    loadOfflineVideos()
+                    Toast.makeText(this, "$changed video berhasil diperbarui", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Batal") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun setupNetworkMonitoring() {
+        connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager
+        isCurrentlyOnline = isInternetAvailable()
+
+        if (!isCurrentlyOnline) {
+            showNetworkOfflineBanner()
+        }
+
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                runOnUiThread {
+                    val wasOffline = !isCurrentlyOnline
+                    isCurrentlyOnline = true
+                    hideNetworkOfflineBanner()
+                    if (wasOffline || !hasEverLoadedHome) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Koneksi internet kembali, memuat konten...",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        loadHomeFeed()
+                    }
+                }
+            }
+
+            override fun onLost(network: Network) {
+                runOnUiThread {
+                    isCurrentlyOnline = false
+                    showNetworkOfflineBanner()
+                }
+            }
+        }
+
+        try {
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager?.registerNetworkCallback(request, networkCallback!!)
+        } catch (_: Exception) {}
+    }
+
+    private fun isInternetAvailable(): Boolean {
+        val cm = connectivityManager ?: (getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager) ?: return false
+        val activeNetwork = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(activeNetwork) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun showNetworkOfflineBanner() {
+        if (::layoutNetworkOfflineBanner.isInitialized) {
+            layoutNetworkOfflineBanner.visibility = View.VISIBLE
+            layoutNetworkOfflineBanner.alpha = 0f
+            layoutNetworkOfflineBanner.animate().alpha(1f).setDuration(280).start()
+        }
+    }
+
+    private fun hideNetworkOfflineBanner() {
+        if (::layoutNetworkOfflineBanner.isInitialized && layoutNetworkOfflineBanner.visibility == View.VISIBLE) {
+            layoutNetworkOfflineBanner.animate().alpha(0f).setDuration(200).withEndAction {
+                layoutNetworkOfflineBanner.visibility = View.GONE
+            }.start()
+        }
+    }
+
+    private fun updateGalleryVisibilityUi() {
+        val isVisible = OfflineDownloadManager.isShowInGallery(this)
+        switchGalleryVisibility.isChecked = isVisible
+        if (isVisible) {
+            tvGalleryVisibilityStatus.text = "File normal (terlihat di galeri HP)"
+            tvBatchToggleLabel.text = "Sembunyikan Semua Video di Galeri"
+        } else {
+            tvGalleryVisibilityStatus.text = "Diawali tanda '.' (tersembunyi dari galeri HP)"
+            tvBatchToggleLabel.text = "Tampilkan Semua Video di Galeri"
+        }
     }
 
     private fun selectNavTab(index: Int) {
@@ -291,6 +457,7 @@ class MainActivity : AppCompatActivity() {
             btnStorageDownload.setTextColor(slate)
             tvActiveStoragePath.text = "Path: ${OfflineDownloadManager.PATH_MOVIES}"
         }
+        updateGalleryVisibilityUi()
     }
 
     private fun loadOfflineVideos() {
@@ -402,19 +569,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadHomeFeed() {
         mainProgressBar.visibility = View.VISIBLE
-        mainScrollView.visibility = View.GONE
+        if (allCategories.isEmpty()) {
+            mainScrollView.visibility = View.GONE
+        }
 
         lifecycleScope.launch {
             val result = MovieBoxApi.getHome("id")
             mainProgressBar.visibility = View.GONE
 
             result.onSuccess { homeData ->
+                hasEverLoadedHome = true
                 mainScrollView.visibility = View.VISIBLE
                 allCategories = homeData.categories
                 bindHero(homeData.heroItem)
                 bindCategories(homeData.categories)
+                hideNetworkOfflineBanner()
             }.onFailure { err ->
-                Toast.makeText(this@MainActivity, "Gagal memuat: ${err.message}", Toast.LENGTH_LONG).show()
+                if (!isCurrentlyOnline) {
+                    showNetworkOfflineBanner()
+                } else {
+                    Toast.makeText(this@MainActivity, "Gagal memuat: ${err.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -524,5 +699,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        networkCallback?.let {
+            try {
+                connectivityManager?.unregisterNetworkCallback(it)
+            } catch (_: Exception) {}
+        }
     }
 }

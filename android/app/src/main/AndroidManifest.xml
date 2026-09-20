@@ -4,6 +4,7 @@
     <!-- Izin Akses Jaringan untuk Streaming Video dan Mengambil API -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Izin Akses Penyimpanan untuk Download Video Offline -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -22,16 +23,23 @@
         android:requestLegacyExternalStorage="true"
         android:theme="@style/Theme.MovieNas">
 
-        <!-- 1. Halaman Utama (Home & Feed & Offline Tab) -->
+        <!-- 0. Splash Screen (Netflix-Style Cinematic Intro) -->
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.SplashActivity"
             android:exported="true"
+            android:theme="@style/Theme.MovieNas.Splash"
             android:configChanges="orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 1. Halaman Utama (Home & Feed & Offline Tab) -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
 
         <!-- 2. Halaman Detail (Sinopsis, Musim, & Episode) -->
         <activity
