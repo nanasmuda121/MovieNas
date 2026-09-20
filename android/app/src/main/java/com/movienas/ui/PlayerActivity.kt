@@ -145,10 +145,10 @@ class PlayerActivity : AppCompatActivity() {
                 val isSelected = s.quality == currentQuality
 
                 if (isSelected) {
-                    setBackgroundResource(R.drawable.bg_button_red)
+                    setBackgroundResource(R.drawable.bg_pill_active)
                     setTextColor(Color.WHITE)
                 } else {
-                    setBackgroundResource(R.drawable.bg_badge)
+                    setBackgroundResource(R.drawable.bg_pill_inactive)
                     setTextColor(Color.parseColor("#94A3B8"))
                 }
 

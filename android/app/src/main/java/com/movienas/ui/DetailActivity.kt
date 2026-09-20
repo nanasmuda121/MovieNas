@@ -26,13 +26,13 @@ class DetailActivity : AppCompatActivity() {
 
     private lateinit var detailProgressBar: ProgressBar
     private lateinit var detailScrollView: NestedScrollView
-    private lateinit var btnBack: ImageView
+    private lateinit var btnBack: View
     private lateinit var ivDetailBackdrop: ImageView
     private lateinit var ivDetailPoster: ImageView
     private lateinit var tvDetailTitle: TextView
     private lateinit var tvDetailMeta: TextView
     private lateinit var tvDetailRating: TextView
-    private lateinit var btnDetailPlay: Button
+    private lateinit var btnDetailPlay: View
     private lateinit var tvDetailSynopsis: TextView
 
     // Episodes

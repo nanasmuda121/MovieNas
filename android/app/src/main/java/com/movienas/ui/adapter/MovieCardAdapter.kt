@@ -44,10 +44,19 @@ class MovieCardAdapter(
             holder.tvRating.visibility = View.GONE
         }
 
-        holder.tvType.text = when (movie.subjectType) {
-            2 -> "SERIES"
-            7 -> "SHORT"
-            else -> "HD"
+        when (movie.subjectType) {
+            2 -> {
+                holder.tvType.text = "SERIES"
+                holder.tvType.setBackgroundResource(R.drawable.bg_badge_series)
+            }
+            7 -> {
+                holder.tvType.text = "DRAMA"
+                holder.tvType.setBackgroundResource(R.drawable.bg_badge_drama)
+            }
+            else -> {
+                holder.tvType.text = "MOVIE"
+                holder.tvType.setBackgroundResource(R.drawable.bg_badge_movie)
+            }
         }
 
         Glide.with(holder.itemView.context)
