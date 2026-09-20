@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.movienas.R
 
 class EpisodeAdapter(
-    private val episodes: List<Int>,
+    private var episodes: List<Int>,
     private var selectedEpisode: Int,
     private val onEpisodeClick: (Int) -> Unit
 ) : RecyclerView.Adapter<EpisodeAdapter.ViewHolder>() {
@@ -44,16 +44,32 @@ class EpisodeAdapter(
         }
 
         holder.itemView.setOnClickListener {
-            selectedEpisode = ep
-            notifyDataSetChanged()
+            if (selectedEpisode != ep) {
+                val oldIndex = episodes.indexOf(selectedEpisode)
+                selectedEpisode = ep
+                val newIndex = holder.bindingAdapterPosition
+                if (oldIndex >= 0) notifyItemChanged(oldIndex)
+                if (newIndex >= 0) notifyItemChanged(newIndex)
+            }
             onEpisodeClick(ep)
         }
     }
 
     override fun getItemCount(): Int = episodes.size
 
-    fun setSelected(ep: Int) {
-        selectedEpisode = ep
+    fun updateList(newEpisodes: List<Int>, newSelectedEp: Int) {
+        episodes = newEpisodes
+        selectedEpisode = newSelectedEp
         notifyDataSetChanged()
+    }
+
+    fun setSelected(ep: Int) {
+        if (selectedEpisode != ep) {
+            val oldIndex = episodes.indexOf(selectedEpisode)
+            selectedEpisode = ep
+            val newIndex = episodes.indexOf(ep)
+            if (oldIndex >= 0) notifyItemChanged(oldIndex)
+            if (newIndex >= 0) notifyItemChanged(newIndex)
+        }
     }
 }

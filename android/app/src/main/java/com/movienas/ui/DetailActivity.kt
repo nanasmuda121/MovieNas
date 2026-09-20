@@ -1,9 +1,12 @@
 package com.movienas.ui
 
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -39,11 +42,21 @@ class DetailActivity : AppCompatActivity() {
     // Episodes
     private lateinit var episodesSection: LinearLayout
     private lateinit var tvEpisodesTitle: TextView
+    private lateinit var scrollDetailEpisodeRanges: View
+    private lateinit var layoutDetailEpisodeRanges: LinearLayout
     private lateinit var rvEpisodes: RecyclerView
 
     private var movieDetail: MovieDetail? = null
     private var selectedSeason: Int = 1
     private var selectedEpisode: Int = 1
+
+    private var lastClickTime: Long = 0L
+    private fun canClick(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastClickTime < 1000L) return false
+        lastClickTime = now
+        return true
+    }
 
     private val detailPath: String by lazy {
         intent.getStringExtra("EXTRA_DETAIL_PATH") ?: ""
@@ -55,6 +68,14 @@ class DetailActivity : AppCompatActivity() {
 
         initViews()
         loadDetailData()
+    }
+
+    private fun dpToPx(dp: Float): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp,
+            resources.displayMetrics
+        ).toInt()
     }
 
     private fun initViews() {
@@ -72,6 +93,8 @@ class DetailActivity : AppCompatActivity() {
 
         episodesSection = findViewById(R.id.episodesSection)
         tvEpisodesTitle = findViewById(R.id.tvEpisodesTitle)
+        scrollDetailEpisodeRanges = findViewById(R.id.scrollDetailEpisodeRanges)
+        layoutDetailEpisodeRanges = findViewById(R.id.layoutDetailEpisodeRanges)
         rvEpisodes = findViewById(R.id.rvEpisodes)
 
         btnBack.setOnClickListener {
@@ -90,15 +113,20 @@ class DetailActivity : AppCompatActivity() {
         detailScrollView.visibility = View.GONE
 
         lifecycleScope.launch {
-            val result = MovieBoxApi.getDetail(detailPath, "id")
-            detailProgressBar.visibility = View.GONE
+            try {
+                val result = MovieBoxApi.getDetail(detailPath, "id")
+                detailProgressBar.visibility = View.GONE
 
-            result.onSuccess { detail ->
-                movieDetail = detail
-                detailScrollView.visibility = View.VISIBLE
-                bindDetail(detail)
-            }.onFailure { err ->
-                Toast.makeText(this@DetailActivity, "Gagal memuat detail: ${err.message}", Toast.LENGTH_LONG).show()
+                result.onSuccess { detail ->
+                    movieDetail = detail
+                    detailScrollView.visibility = View.VISIBLE
+                    bindDetail(detail)
+                }.onFailure { err ->
+                    Toast.makeText(this@DetailActivity, "Gagal memuat detail: ${err.message}", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Throwable) {
+                detailProgressBar.visibility = View.GONE
+                Toast.makeText(this@DetailActivity, "Gagal memuat detail: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -134,23 +162,87 @@ class DetailActivity : AppCompatActivity() {
 
             tvDetailPlayText.text = "▶ Tonton Episode $selectedEpisode"
             btnDetailPlay.setOnClickListener {
+                if (!canClick()) return@setOnClickListener
                 startPlayer(selectedSeason, selectedEpisode)
             }
 
+            setupEpisodeRanges(firstSeason.allEpisodes)
+        } else {
+            episodesSection.visibility = View.GONE
+            tvDetailPlayText.text = "▶ Tonton Film Sekarang"
+            btnDetailPlay.setOnClickListener {
+                if (!canClick()) return@setOnClickListener
+                startPlayer(0, 0)
+            }
+        }
+    }
+
+    private fun setupEpisodeRanges(allEpisodes: List<Int>) {
+        val chunkSize = 25
+        if (allEpisodes.size <= chunkSize) {
+            scrollDetailEpisodeRanges.visibility = View.GONE
             rvEpisodes.layoutManager = GridLayoutManager(this, 5)
-            val episodeAdapter = EpisodeAdapter(firstSeason.allEpisodes, selectedEpisode) { clickedEp ->
+            rvEpisodes.setHasFixedSize(true)
+            val episodeAdapter = EpisodeAdapter(allEpisodes, selectedEpisode) { clickedEp ->
+                if (!canClick()) return@EpisodeAdapter
                 selectedEpisode = clickedEp
                 tvDetailPlayText.text = "▶ Tonton Episode $selectedEpisode"
                 startPlayer(selectedSeason, selectedEpisode)
             }
             rvEpisodes.adapter = episodeAdapter
-        } else {
-            episodesSection.visibility = View.GONE
-            tvDetailPlayText.text = "▶ Tonton Film Sekarang"
-            btnDetailPlay.setOnClickListener {
-                startPlayer(0, 0)
+            return
+        }
+
+        scrollDetailEpisodeRanges.visibility = View.VISIBLE
+        val chunks = allEpisodes.chunked(chunkSize)
+        var activeChunkIndex = chunks.indexOfFirst { it.contains(selectedEpisode) }
+        if (activeChunkIndex < 0) activeChunkIndex = 0
+
+        val currentChunk = chunks[activeChunkIndex]
+        rvEpisodes.layoutManager = GridLayoutManager(this, 5)
+        rvEpisodes.setHasFixedSize(true)
+        val episodeAdapter = EpisodeAdapter(currentChunk, selectedEpisode) { clickedEp ->
+            if (!canClick()) return@EpisodeAdapter
+            selectedEpisode = clickedEp
+            tvDetailPlayText.text = "▶ Tonton Episode $selectedEpisode"
+            startPlayer(selectedSeason, selectedEpisode)
+        }
+        rvEpisodes.adapter = episodeAdapter
+
+        fun renderRangePills() {
+            layoutDetailEpisodeRanges.removeAllViews()
+            for (i in chunks.indices) {
+                val chunk = chunks[i]
+                val first = chunk.first()
+                val last = chunk.last()
+                val pill = TextView(this).apply {
+                    text = "$first - $last"
+                    textSize = 12f
+                    typeface = Typeface.DEFAULT_BOLD
+                    val isSelected = i == activeChunkIndex
+                    setBackgroundResource(if (isSelected) R.drawable.bg_button_red else R.drawable.bg_pill_inactive)
+                    setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#94A3B8"))
+                    setPadding(dpToPx(12f), dpToPx(6f), dpToPx(12f), dpToPx(6f))
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+                    }
+                    layoutParams = lp
+                    setOnClickListener {
+                        if (activeChunkIndex != i) {
+                            activeChunkIndex = i
+                            renderRangePills()
+                            episodeAdapter.updateList(chunks[i], selectedEpisode)
+                        }
+                    }
+                }
+                layoutDetailEpisodeRanges.addView(pill)
             }
         }
+
+        renderRangePills()
     }
 
     private fun startPlayer(season: Int, episode: Int) {

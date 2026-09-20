@@ -327,54 +327,128 @@ object MovieBoxApi {
     ): Result<StreamData> = withContext(Dispatchers.IO) {
         runCatching {
             val clean = detailPath.trim().removePrefix("/").substringAfterLast("/")
-            val d = getDetail(clean, lang).getOrThrow()
-            val subId = if (subjectId.isNotEmpty()) subjectId else d.subjectId
-            val isMovie = d.subjectType == 1
+            var subId = subjectId.trim()
+            var isMovie = season == 0 && episode == 0
+            var title = ""
 
-            var se = if (isMovie) 0 else season
-            var ep = if (isMovie) 0 else episode
-
-            if (!isMovie && ep == 0 && d.seasons.isNotEmpty()) {
-                val curSe = d.seasons.find { it.seasonNumber == se } ?: d.seasons[0]
-                se = curSe.seasonNumber
-                ep = curSe.allEpisodes.firstOrNull() ?: 1
-            }
-
-            var playRes = fetchPlay(subId, se, ep, clean, lang)
-
-            if (playRes.streams.isEmpty() && (se != 0 || ep != 0)) {
-                val fb0 = fetchPlay(subId, 0, 0, clean, lang)
-                if (fb0.streams.isNotEmpty()) {
-                    playRes = fb0
-                    se = 0
-                    ep = 0
-                }
-            } else if (playRes.streams.isEmpty() && se == 0 && ep == 0) {
-                val fb1 = fetchPlay(subId, 1, 1, clean, lang)
-                if (fb1.streams.isNotEmpty()) {
-                    playRes = fb1
-                    se = 1
-                    ep = 1
+            // Only fetch detail if subjectId is empty
+            if (subId.isEmpty()) {
+                val d = getDetail(clean, lang).getOrThrow()
+                subId = d.subjectId
+                isMovie = d.subjectType == 1
+                title = d.title
+                if (!isMovie && episode == 0 && d.seasons.isNotEmpty()) {
+                    val curSe = d.seasons.find { it.seasonNumber == season } ?: d.seasons[0]
+                    val se = curSe.seasonNumber
+                    val ep = curSe.allEpisodes.firstOrNull() ?: 1
+                    return@runCatching fetchStreamInternal(subId, clean, title, isMovie, se, ep, lang)
                 }
             }
 
-            val subItems = mutableListOf<SubtitleItem>()
-            val rawDash = playRes.rawDash
-            val dashUrl = if (rawDash.length() > 0) rawDash.optJSONObject(0)?.optString("url") ?: "" else ""
+            val se = if (isMovie) 0 else season
+            val ep = if (isMovie) 0 else episode
 
-            StreamData(
-                subjectId = subId,
-                detailPath = clean,
-                title = d.title,
-                isMovie = isMovie,
-                season = se,
-                episode = ep,
-                streams = playRes.streams,
-                subtitles = subItems,
-                dashUrl = dashUrl,
-                hasResource = playRes.hasResource
-            )
+            fetchStreamInternal(subId, clean, title, isMovie, se, ep, lang)
         }
+    }
+
+    private fun fetchStreamInternal(
+        subId: String,
+        clean: String,
+        title: String,
+        isMovie: Boolean,
+        season: Int,
+        episode: Int,
+        lang: String
+    ): StreamData {
+        var se = season
+        var ep = episode
+        var playRes = fetchPlay(subId, se, ep, clean, lang)
+
+        if (playRes.streams.isEmpty() && (se != 0 || ep != 0)) {
+            val fb0 = fetchPlay(subId, 0, 0, clean, lang)
+            if (fb0.streams.isNotEmpty()) {
+                playRes = fb0
+                se = 0
+                ep = 0
+            }
+        } else if (playRes.streams.isEmpty() && se == 0 && ep == 0) {
+            val fb1 = fetchPlay(subId, 1, 1, clean, lang)
+            if (fb1.streams.isNotEmpty()) {
+                playRes = fb1
+                se = 1
+                ep = 1
+            }
+        }
+
+        val subItems = mutableListOf<SubtitleItem>()
+        val firstStreamId = playRes.streams.firstOrNull()?.id ?: ""
+        if (firstStreamId.isNotEmpty() && subId.isNotEmpty()) {
+            try {
+                val caps = fetchCaptions(subId, firstStreamId, clean, lang)
+                subItems.addAll(caps)
+            } catch (e: Exception) {
+                // Ignore subtitle errors
+            }
+        }
+
+        val rawDash = playRes.rawDash
+        val dashUrl = if (rawDash.length() > 0) rawDash.optJSONObject(0)?.optString("url") ?: "" else ""
+
+        return StreamData(
+            subjectId = subId,
+            detailPath = clean,
+            title = title,
+            isMovie = isMovie,
+            season = se,
+            episode = ep,
+            streams = playRes.streams,
+            subtitles = subItems,
+            dashUrl = dashUrl,
+            hasResource = playRes.hasResource
+        )
+    }
+
+    private fun fetchCaptions(
+        subjectId: String,
+        streamId: String,
+        detailPath: String,
+        lang: String
+    ): List<SubtitleItem> {
+        val url = "$BASE_URL/subject/caption?format=MP4&id=${URLEncoder.encode(streamId, "UTF-8")}&subjectId=${URLEncoder.encode(subjectId, "UTF-8")}&detailPath=${URLEncoder.encode(detailPath, "UTF-8")}"
+        val headers = mapOf(
+            "Accept" to "application/json",
+            "X-Request-Lang" to lang,
+            "Origin" to "https://themoviebox.xyz",
+            "Referer" to "https://themoviebox.xyz/$lang/spa/videoPlayPage/movies/$detailPath"
+        )
+        val json = try {
+            getJson(url, headers)
+        } catch (e: Exception) {
+            JSONObject()
+        }
+        val dataObj = json.optJSONObject("data") ?: JSONObject()
+        val rawCaptions = dataObj.optJSONArray("captions") ?: JSONArray()
+        val list = mutableListOf<SubtitleItem>()
+        for (i in 0 until rawCaptions.length()) {
+            val c = rawCaptions.optJSONObject(i) ?: continue
+            val code = c.optString("lan", "")
+            val name = c.optString("lanName", code).ifEmpty { "Subtitle" }
+            val srtUrl = c.optString("url", "")
+            if (srtUrl.isNotEmpty()) {
+                list.add(
+                    SubtitleItem(
+                        id = c.optString("id", ""),
+                        languageCode = code,
+                        languageName = name,
+                        srtUrl = srtUrl,
+                        vttUrl = "",
+                        size = c.optLong("size", 0L)
+                    )
+                )
+            }
+        }
+        return list
     }
 
     private data class InternalPlayResult(

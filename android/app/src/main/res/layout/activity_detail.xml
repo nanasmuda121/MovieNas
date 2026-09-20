@@ -266,12 +266,33 @@
 
                 </LinearLayout>
 
+                <!-- Range Selector (Horizontal Scroll) for 25+ episodes -->
+                <HorizontalScrollView
+                    android:id="@+id/scrollDetailEpisodeRanges"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/layoutDetailEpisodeRanges"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:orientation="horizontal" />
+
+                </HorizontalScrollView>
+
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvEpisodes"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
                     android:overScrollMode="never"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp" />

@@ -625,6 +625,24 @@
                     android:textColor="@color/text_slate"
                     android:textSize="12sp" />
 
+                <!-- Range Selector (Horizontal Scroll) for 25+ episodes -->
+                <HorizontalScrollView
+                    android:id="@+id/scrollPlayerEpisodeRanges"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:overScrollMode="never"
+                    android:scrollbars="none"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:id="@+id/layoutPlayerEpisodeRanges"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+
+                </HorizontalScrollView>
+
                 <!-- 4-Column Episodes Grid -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvEpisodesGrid"

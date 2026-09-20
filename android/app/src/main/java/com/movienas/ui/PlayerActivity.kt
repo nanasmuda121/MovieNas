@@ -87,8 +87,22 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var cardEpisodeGrid: LinearLayout
     private lateinit var tvEpisodeGridTitle: TextView
     private lateinit var tvEpisodeGridSub: TextView
+    private lateinit var scrollPlayerEpisodeRanges: View
+    private lateinit var layoutPlayerEpisodeRanges: LinearLayout
     private lateinit var rvEpisodesGrid: RecyclerView
     private var episodeAdapter: EpisodeAdapter? = null
+    private var episodeChunks: List<List<Int>> = emptyList()
+    private var activeChunkIndex: Int = 0
+
+    private var streamJob: kotlinx.coroutines.Job? = null
+    private var lastClickTime: Long = 0L
+
+    private fun canClick(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastClickTime < 800L) return false
+        lastClickTime = now
+        return true
+    }
 
     private var exoPlayer: ExoPlayer? = null
     private var streamData: StreamData? = null
@@ -192,6 +206,8 @@ class PlayerActivity : AppCompatActivity() {
         cardEpisodeGrid = findViewById(R.id.cardEpisodeGrid)
         tvEpisodeGridTitle = findViewById(R.id.tvEpisodeGridTitle)
         tvEpisodeGridSub = findViewById(R.id.tvEpisodeGridSub)
+        scrollPlayerEpisodeRanges = findViewById(R.id.scrollPlayerEpisodeRanges)
+        layoutPlayerEpisodeRanges = findViewById(R.id.layoutPlayerEpisodeRanges)
         rvEpisodesGrid = findViewById(R.id.rvEpisodesGrid)
 
         updateTitleInfo()
@@ -201,48 +217,50 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnPlayerDownload.setOnClickListener {
-            showDownloadDialog()
+            if (canClick()) showDownloadDialog()
         }
 
         btnPlayerPip.setOnClickListener {
-            enterPictureInPicture()
+            if (canClick()) enterPictureInPicture()
         }
 
         btnPlayerResize.setOnClickListener {
-            cycleResizeMode()
+            if (canClick()) cycleResizeMode()
         }
 
         // Tonton Fullscreen Landscape Click
         btnFullscreenLandscape.setOnClickListener {
-            enterFullscreenLandscape()
+            if (canClick()) enterFullscreenLandscape()
         }
 
         // Tutup Fullscreen Landscape Click
         btnCloseFullscreen.setOnClickListener {
-            exitFullscreenLandscape()
+            if (canClick()) exitFullscreenLandscape()
         }
 
         btnFsResize.setOnClickListener {
-            cycleResizeMode()
+            if (canClick()) cycleResizeMode()
         }
 
         btnFsPip.setOnClickListener {
-            enterPictureInPicture()
+            if (canClick()) enterPictureInPicture()
         }
 
         btnPrevEp.setOnClickListener {
+            if (!canClick()) return@setOnClickListener
             if (currentEpisode > 1) {
                 currentEpisode--
                 updateTitleInfo()
-                episodeAdapter?.setSelected(currentEpisode)
+                syncActiveEpisodeToGrid(currentEpisode)
                 loadStreamData()
             }
         }
 
         btnNextEp.setOnClickListener {
+            if (!canClick()) return@setOnClickListener
             currentEpisode++
             updateTitleInfo()
-            episodeAdapter?.setSelected(currentEpisode)
+            syncActiveEpisodeToGrid(currentEpisode)
             loadStreamData()
         }
 
@@ -405,19 +423,90 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             cardEpisodeGrid.visibility = View.VISIBLE
-            tvEpisodeGridTitle.text = "Daftar Episode Season $currentSeason"
-            tvEpisodeGridSub.text = "Pilih episode untuk melanjutkan"
+            tvEpisodeGridTitle.text = if (isShortDrama) "Daftar Episode Drama Pendek" else "Daftar Episode Season $currentSeason"
+            tvEpisodeGridSub.text = "Total ${episodesList.size} Episode • Pilih episode untuk memutar"
 
-            rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
-            episodeAdapter = EpisodeAdapter(episodesList, currentEpisode) { ep ->
-                currentEpisode = ep
-                updateTitleInfo()
-                loadStreamData()
+            val chunkSize = 25
+            if (episodesList.size <= chunkSize) {
+                scrollPlayerEpisodeRanges.visibility = View.GONE
+                rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
+                rvEpisodesGrid.setHasFixedSize(true)
+                episodeAdapter = EpisodeAdapter(episodesList, currentEpisode) { ep ->
+                    if (!canClick()) return@EpisodeAdapter
+                    currentEpisode = ep
+                    updateTitleInfo()
+                    loadStreamData()
+                }
+                rvEpisodesGrid.adapter = episodeAdapter
+            } else {
+                scrollPlayerEpisodeRanges.visibility = View.VISIBLE
+                episodeChunks = episodesList.chunked(chunkSize)
+                activeChunkIndex = episodeChunks.indexOfFirst { it.contains(currentEpisode) }
+                if (activeChunkIndex < 0) activeChunkIndex = 0
+
+                val currentChunk = episodeChunks[activeChunkIndex]
+                rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
+                rvEpisodesGrid.setHasFixedSize(true)
+                episodeAdapter = EpisodeAdapter(currentChunk, currentEpisode) { ep ->
+                    if (!canClick()) return@EpisodeAdapter
+                    currentEpisode = ep
+                    updateTitleInfo()
+                    loadStreamData()
+                }
+                rvEpisodesGrid.adapter = episodeAdapter
+
+                renderPlayerRangePills()
             }
-            rvEpisodesGrid.adapter = episodeAdapter
         } else {
             cardEpisodeGrid.visibility = View.GONE
         }
+    }
+
+    private fun renderPlayerRangePills() {
+        if (episodeChunks.isEmpty()) return
+        layoutPlayerEpisodeRanges.removeAllViews()
+        for (i in episodeChunks.indices) {
+            val chunk = episodeChunks[i]
+            val first = chunk.first()
+            val last = chunk.last()
+            val pill = TextView(this).apply {
+                text = "$first - $last"
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+                val isSelected = i == activeChunkIndex
+                setBackgroundResource(if (isSelected) R.drawable.bg_button_red else R.drawable.bg_pill_inactive)
+                setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#94A3B8"))
+                setPadding(dpToPx(12f), dpToPx(6f), dpToPx(12f), dpToPx(6f))
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+                }
+                layoutParams = lp
+                setOnClickListener {
+                    if (activeChunkIndex != i) {
+                        activeChunkIndex = i
+                        renderPlayerRangePills()
+                        episodeAdapter?.updateList(episodeChunks[i], currentEpisode)
+                    }
+                }
+            }
+            layoutPlayerEpisodeRanges.addView(pill)
+        }
+    }
+
+    private fun syncActiveEpisodeToGrid(ep: Int) {
+        if (episodeChunks.isNotEmpty()) {
+            val neededChunk = episodeChunks.indexOfFirst { it.contains(ep) }
+            if (neededChunk >= 0 && neededChunk != activeChunkIndex) {
+                activeChunkIndex = neededChunk
+                renderPlayerRangePills()
+                episodeAdapter?.updateList(episodeChunks[neededChunk], ep)
+                return
+            }
+        }
+        episodeAdapter?.setSelected(ep)
     }
 
     private fun setupWatchlistState() {
@@ -455,58 +544,81 @@ class PlayerActivity : AppCompatActivity() {
             },
             onError = { error ->
                 playerProgressBar.visibility = if (exoPlayer?.isPlaying == true) View.GONE else View.VISIBLE
-                Toast.makeText(this, "Gagal memutar video: ${error.message}", Toast.LENGTH_LONG).show()
+                if (!isFinishing && !isDestroyed) {
+                    Toast.makeText(this, "Gagal memutar video: ${error.message}", Toast.LENGTH_LONG).show()
+                }
             }
         )
         playerView.player = exoPlayer
         playerView.resizeMode = currentResizeMode
 
         // Sync close button header in fullscreen with player controller visibility
-        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-            if (isFullscreenLandscape || resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                layoutFullscreenHeader.visibility = visibility
-            }
-        })
+        try {
+            playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
+                if (isFinishing || isDestroyed) return@ControllerVisibilityListener
+                if (isFullscreenLandscape || resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    layoutFullscreenHeader.visibility = visibility
+                }
+            })
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     private fun loadStreamData() {
+        streamJob?.cancel()
+
         playerProgressBar.visibility = View.VISIBLE
 
-        lifecycleScope.launch {
-            val result = MovieBoxApi.getStream(
-                detailPath = detailPath,
-                subjectId = subjectId,
-                season = currentSeason,
-                episode = currentEpisode,
-                lang = "id"
-            )
-            playerProgressBar.visibility = View.GONE
+        streamJob = lifecycleScope.launch {
+            try {
+                val result = MovieBoxApi.getStream(
+                    detailPath = detailPath,
+                    subjectId = subjectId,
+                    season = currentSeason,
+                    episode = currentEpisode,
+                    lang = "id"
+                )
 
-            result.onSuccess { data ->
-                streamData = data
+                if (!isActive || isFinishing || isDestroyed) return@launch
+                playerProgressBar.visibility = View.GONE
 
-                if (data.streams.isNotEmpty()) {
-                    val defaultQuality = data.streams.find { it.resolution == 720 }
-                        ?: data.streams.find { it.resolution == 1080 }
-                        ?: data.streams.first()
+                result.onSuccess { data ->
+                    if (!isActive || isFinishing || isDestroyed) return@onSuccess
+                    streamData = data
 
-                    currentQuality = defaultQuality.quality
+                    if (data.streams.isNotEmpty()) {
+                        val defaultQuality = data.streams.find { it.resolution == 720 }
+                            ?: data.streams.find { it.resolution == 1080 }
+                            ?: data.streams.first()
 
-                    // Default subtitle: Indonesian if available, else first
-                    val idSub = data.subtitles.find {
-                        it.languageCode.equals("id", ignoreCase = true) ||
-                                it.languageName.contains("Indonesia", ignoreCase = true)
+                        currentQuality = defaultQuality.quality
+
+                        // Default subtitle: Indonesian if available, else first
+                        val idSub = data.subtitles.find {
+                            it.languageCode.equals("id", ignoreCase = true) ||
+                                    it.languageName.contains("Indonesia", ignoreCase = true)
+                        }
+                        currentSubtitleUrl = idSub?.srtUrl ?: data.subtitles.firstOrNull()?.srtUrl
+
+                        setupQualityButtons(data.streams)
+                        setupSubtitleButtons(data.subtitles)
+                        playSelectedStream(defaultQuality)
+                    } else {
+                        Toast.makeText(this@PlayerActivity, "Sumber streaming video belum tersedia dari server", Toast.LENGTH_SHORT).show()
                     }
-                    currentSubtitleUrl = idSub?.srtUrl ?: data.subtitles.firstOrNull()?.srtUrl
-
-                    setupQualityButtons(data.streams)
-                    setupSubtitleButtons(data.subtitles)
-                    playSelectedStream(defaultQuality)
-                } else {
-                    Toast.makeText(this@PlayerActivity, "Sumber streaming video belum tersedia dari server", Toast.LENGTH_SHORT).show()
+                }.onFailure { err ->
+                    if (!isFinishing && !isDestroyed) {
+                        Toast.makeText(this@PlayerActivity, "Gagal memuat video: ${err.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
-            }.onFailure { err ->
-                Toast.makeText(this@PlayerActivity, "Error: ${err.message}", Toast.LENGTH_LONG).show()
+            } catch (e: Throwable) {
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    playerProgressBar.visibility = View.GONE
+                    if (!isFinishing && !isDestroyed) {
+                        Toast.makeText(this@PlayerActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
     }
@@ -785,6 +897,18 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        currentSeason = intent.getIntExtra("EXTRA_SEASON", 1)
+        currentEpisode = intent.getIntExtra("EXTRA_EPISODE", 1)
+        isEpisodic = intent.getBooleanExtra("EXTRA_IS_EPISODIC", false) || currentEpisode > 0
+        episodesList = intent.getIntegerArrayListExtra("EXTRA_EPISODES_LIST") ?: arrayListOf()
+        updateTitleInfo()
+        setupEpisodesGrid()
+        loadStreamData()
+    }
+
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && exoPlayer?.isPlaying == true) {
@@ -794,14 +918,24 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || !isInPictureInPictureMode) {
-            exoPlayer?.pause()
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || !isInPictureInPictureMode) {
+                exoPlayer?.pause()
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        exoPlayer?.release()
-        exoPlayer = null
+        streamJob?.cancel()
+        try {
+            playerView.player = null
+            exoPlayer?.release()
+            exoPlayer = null
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 }

@@ -88,33 +88,34 @@ object MoviePlayerManager {
         startPositionMs: Long = 0L,
         autoPlay: Boolean = true
     ) {
-        val mediaItemBuilder = MediaItem.Builder()
-            .setUri(videoUrl)
-            .setMimeType(MimeTypes.APPLICATION_MP4)
+        if (videoUrl.isBlank()) return
 
-        if (!subtitleUrl.isNullOrEmpty()) {
-            val isVtt = subtitleUrl.contains(".vtt", ignoreCase = true)
-            val subMime = if (isVtt) MimeTypes.TEXT_VTT else MimeTypes.APPLICATION_SUBRIP
+        try {
+            val mediaItemBuilder = MediaItem.Builder()
+                .setUri(videoUrl)
 
-            val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
-                .setMimeType(subMime)
-                .setLanguage("id")
-                .setLabel("Bahasa Indonesia")
-                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                .build()
+            if (!subtitleUrl.isNullOrEmpty()) {
+                val isVtt = subtitleUrl.contains(".vtt", ignoreCase = true)
+                val subMime = if (isVtt) MimeTypes.TEXT_VTT else MimeTypes.APPLICATION_SUBRIP
 
-            mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
-        }
+                val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
+                    .setMimeType(subMime)
+                    .setLanguage("id")
+                    .setLabel("Bahasa Indonesia")
+                    .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                    .build()
 
-        val mediaItem = mediaItemBuilder.build()
-        val dataSourceFactory = buildDataSourceFactory(context)
-        val mediaSource: MediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(mediaItem)
+                mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
+            }
 
-        player.setMediaSource(mediaSource, startPositionMs)
-        player.prepare()
-        if (autoPlay) {
-            player.play()
+            val mediaItem = mediaItemBuilder.build()
+            player.setMediaItem(mediaItem, startPositionMs)
+            player.prepare()
+            if (autoPlay) {
+                player.play()
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
@@ -124,16 +125,21 @@ object MoviePlayerManager {
         newVideoUrl: String,
         subtitleUrl: String? = null
     ) {
-        val currentPos = player.currentPosition
-        val isCurrentlyPlaying = player.isPlaying
-        playVideo(
-            context = context,
-            player = player,
-            videoUrl = newVideoUrl,
-            subtitleUrl = subtitleUrl,
-            startPositionMs = currentPos,
-            autoPlay = isCurrentlyPlaying
-        )
+        if (newVideoUrl.isBlank()) return
+        try {
+            val currentPos = player.currentPosition
+            val isCurrentlyPlaying = player.isPlaying
+            playVideo(
+                context = context,
+                player = player,
+                videoUrl = newVideoUrl,
+                subtitleUrl = subtitleUrl,
+                startPositionMs = currentPos,
+                autoPlay = isCurrentlyPlaying
+            )
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     fun playLocalVideo(
@@ -141,12 +147,19 @@ object MoviePlayerManager {
         filePath: String,
         autoPlay: Boolean = true
     ) {
-        val fileUri = Uri.fromFile(java.io.File(filePath))
-        val mediaItem = MediaItem.fromUri(fileUri)
-        player.setMediaItem(mediaItem)
-        player.prepare()
-        if (autoPlay) {
-            player.play()
+        if (filePath.isBlank()) return
+        try {
+            val file = java.io.File(filePath)
+            if (!file.exists()) return
+            val fileUri = Uri.fromFile(file)
+            val mediaItem = MediaItem.fromUri(fileUri)
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            if (autoPlay) {
+                player.play()
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 }
