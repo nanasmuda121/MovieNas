@@ -700,13 +700,4 @@ class MainActivity : AppCompatActivity() {
 
         dialog.show()
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        networkCallback?.let {
-            try {
-                connectivityManager?.unregisterNetworkCallback(it)
-            } catch (_: Exception) {}
-        }
-    }
 }
