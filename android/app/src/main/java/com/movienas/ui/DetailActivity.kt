@@ -99,6 +99,7 @@ class DetailActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener {
             finish()
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }
     }
 
@@ -262,5 +263,6 @@ class DetailActivity : AppCompatActivity() {
             putIntegerArrayListExtra("EXTRA_EPISODES_LIST", episodesList)
         }
         startActivity(intent)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 }

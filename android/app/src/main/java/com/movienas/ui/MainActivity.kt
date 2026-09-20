@@ -3,10 +3,15 @@ package com.movienas.ui
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.text.Html
+import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.AnimationUtils
+import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -98,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         loadHomeFeed()
+        maybeShowSupportDeveloperPopup()
     }
 
     override fun onResume() {
@@ -321,6 +327,7 @@ class MainActivity : AppCompatActivity() {
             putExtra("EXTRA_TYPE_LABEL", "Offline Video")
         }
         startActivity(intent)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
     private fun confirmDeleteVideo(video: DownloadedVideo) {
@@ -454,6 +461,7 @@ class MainActivity : AppCompatActivity() {
             putExtra("EXTRA_DETAIL_PATH", detailPath)
         }
         startActivity(intent)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
     private fun openSearch(query: String) {
@@ -461,5 +469,60 @@ class MainActivity : AppCompatActivity() {
             putExtra("EXTRA_QUERY", query)
         }
         startActivity(intent)
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+    }
+
+    // ─── Support Developer Popup ───────────────────────────────────────────────
+
+    private fun maybeShowSupportDeveloperPopup() {
+        val prefs = getSharedPreferences("movienas_prefs", MODE_PRIVATE)
+        val dontShow = prefs.getBoolean("support_dont_show", false)
+        if (dontShow) return
+
+        val launchCount = prefs.getInt("launch_count", 0) + 1
+        prefs.edit().putInt("launch_count", launchCount).apply()
+
+        // Show popup on 1st launch and every 5th launch
+        if (launchCount != 1 && launchCount % 5 != 0) return
+
+        showSupportDeveloperPopup()
+    }
+
+    private fun showSupportDeveloperPopup() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_support_developer, null)
+
+        val dialog = AlertDialog.Builder(this, R.style.Theme_MovieNas_Dialog)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            attributes?.windowAnimations = R.style.DialogSlideAnimation
+        }
+
+        val btnJoin = dialogView.findViewById<LinearLayout>(R.id.btnJoinWhatsApp)
+        val btnLater = dialogView.findViewById<TextView>(R.id.btnMaybeLater)
+        val checkDont = dialogView.findViewById<CheckBox>(R.id.checkDontShowAgain)
+
+        btnJoin.setOnClickListener {
+            if (checkDont.isChecked) {
+                getSharedPreferences("movienas_prefs", MODE_PRIVATE)
+                    .edit().putBoolean("support_dont_show", true).apply()
+            }
+            val url = "https://whatsapp.com/channel/0029VbCsS2r2phHIV3O0nO1a"
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            dialog.dismiss()
+        }
+
+        btnLater.setOnClickListener {
+            if (checkDont.isChecked) {
+                getSharedPreferences("movienas_prefs", MODE_PRIVATE)
+                    .edit().putBoolean("support_dont_show", true).apply()
+            }
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 }

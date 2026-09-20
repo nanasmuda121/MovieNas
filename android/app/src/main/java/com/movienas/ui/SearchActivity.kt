@@ -69,6 +69,7 @@ class SearchActivity : AppCompatActivity() {
                 putExtra("EXTRA_DETAIL_PATH", movie.detailPath)
             }
             startActivity(intent)
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
         rvSearchResults.adapter = movieAdapter
     }
@@ -76,6 +77,7 @@ class SearchActivity : AppCompatActivity() {
     private fun setupListeners() {
         btnSearchBack.setOnClickListener {
             finish()
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }
 
         btnSearchSubmit.setOnClickListener {
