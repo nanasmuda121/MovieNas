@@ -1,57 +1,81 @@
 package com.movienas.ui
 
 import android.app.PictureInPictureParams
+import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.util.Rational
+import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.movienas.R
 import com.movienas.data.MovieBoxApi
 import com.movienas.data.StreamData
 import com.movienas.data.SubtitleItem
 import com.movienas.data.VideoStream
 import com.movienas.player.MoviePlayerManager
+import com.movienas.ui.adapter.EpisodeAdapter
 import kotlinx.coroutines.launch
 
 @UnstableApi
 class PlayerActivity : AppCompatActivity() {
 
-    private lateinit var playerView: PlayerView
-    private lateinit var playerProgressBar: ProgressBar
+    private lateinit var playerRootLayout: RelativeLayout
     private lateinit var playerTopBar: LinearLayout
-    private lateinit var playerBottomBar: LinearLayout
-
+    private lateinit var btnPlayerBack: View
     private lateinit var tvPlayerTitle: TextView
     private lateinit var tvPlayerSubtitle: TextView
-    private lateinit var btnPlayerBack: View
-    private lateinit var btnPlayerResize: View
-    private lateinit var btnPlayerPip: View
+    private lateinit var btnPlayerPip: ImageView
+    private lateinit var btnPlayerWatchlist: View
+    private lateinit var ivWatchlistIcon: ImageView
+    private lateinit var tvWatchlistText: TextView
 
-    // Controls
+    private lateinit var playerCardContainer: CardView
+    private lateinit var playerView: PlayerView
+    private lateinit var playerProgressBar: ProgressBar
+    private lateinit var playerScrollView: NestedScrollView
+
+    private lateinit var layoutPlayerQuickControls: LinearLayout
+    private lateinit var btnPlayerResize: View
+    private lateinit var tvResizeLabel: TextView
+
     private lateinit var layoutEpisodeNav: LinearLayout
     private lateinit var btnPrevEp: View
     private lateinit var btnNextEp: View
     private lateinit var tvEpisodeIndicator: TextView
 
+    private lateinit var cardStreamSettings: LinearLayout
     private lateinit var qualityContainer: LinearLayout
     private lateinit var subtitleContainer: LinearLayout
     private lateinit var speedContainer: LinearLayout
+
+    private lateinit var cardEpisodeGrid: LinearLayout
+    private lateinit var tvEpisodeGridTitle: TextView
+    private lateinit var tvEpisodeGridSub: TextView
+    private lateinit var rvEpisodesGrid: RecyclerView
+    private var episodeAdapter: EpisodeAdapter? = null
 
     private var exoPlayer: ExoPlayer? = null
     private var streamData: StreamData? = null
@@ -62,55 +86,76 @@ class PlayerActivity : AppCompatActivity() {
 
     private var currentSeason: Int = 1
     private var currentEpisode: Int = 1
+    private var isEpisodic: Boolean = false
+    private var episodesList: ArrayList<Int> = arrayListOf()
 
     private val detailPath: String by lazy { intent.getStringExtra("EXTRA_DETAIL_PATH") ?: "" }
     private val subjectId: String by lazy { intent.getStringExtra("EXTRA_SUBJECT_ID") ?: "" }
-    private val movieTitle: String by lazy { intent.getStringExtra("EXTRA_TITLE") ?: "Pemutar Video" }
+    private val movieTitle: String by lazy { intent.getStringExtra("EXTRA_TITLE") ?: "The Fix" }
+    private val typeLabel: String by lazy { intent.getStringExtra("EXTRA_TYPE_LABEL") ?: "Movie" }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Keep screen on during video playback
+        // Keep screen on during playback
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
-        // Enable immersive sticky fullscreen
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                )
 
         setContentView(R.layout.activity_player)
 
         currentSeason = intent.getIntExtra("EXTRA_SEASON", 1)
         currentEpisode = intent.getIntExtra("EXTRA_EPISODE", 1)
+        isEpisodic = intent.getBooleanExtra("EXTRA_IS_EPISODIC", false) || currentEpisode > 0
+        episodesList = intent.getIntegerArrayListExtra("EXTRA_EPISODES_LIST") ?: arrayListOf()
 
         initViews()
         initPlayer()
         setupSpeedControls()
+        setupWatchlistState()
         loadStreamData()
     }
 
-    private fun initViews() {
-        playerView = findViewById(R.id.playerView)
-        playerProgressBar = findViewById(R.id.playerProgressBar)
-        playerTopBar = findViewById(R.id.playerTopBar)
-        playerBottomBar = findViewById(R.id.playerBottomBar)
+    private fun dpToPx(dp: Float): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp,
+            resources.displayMetrics
+        ).toInt()
+    }
 
+    private fun initViews() {
+        playerRootLayout = findViewById(R.id.playerRootLayout)
+        playerTopBar = findViewById(R.id.playerTopBar)
+        btnPlayerBack = findViewById(R.id.btnPlayerBack)
         tvPlayerTitle = findViewById(R.id.tvPlayerTitle)
         tvPlayerSubtitle = findViewById(R.id.tvPlayerSubtitle)
-        btnPlayerBack = findViewById(R.id.btnPlayerBack)
-        btnPlayerResize = findViewById(R.id.btnPlayerResize)
         btnPlayerPip = findViewById(R.id.btnPlayerPip)
+        btnPlayerWatchlist = findViewById(R.id.btnPlayerWatchlist)
+        ivWatchlistIcon = findViewById(R.id.ivWatchlistIcon)
+        tvWatchlistText = findViewById(R.id.tvWatchlistText)
+
+        playerCardContainer = findViewById(R.id.playerCardContainer)
+        playerView = findViewById(R.id.playerView)
+        playerProgressBar = findViewById(R.id.playerProgressBar)
+        playerScrollView = findViewById(R.id.playerScrollView)
+
+        layoutPlayerQuickControls = findViewById(R.id.layoutPlayerQuickControls)
+        btnPlayerResize = findViewById(R.id.btnPlayerResize)
+        tvResizeLabel = findViewById(R.id.tvResizeLabel)
 
         layoutEpisodeNav = findViewById(R.id.layoutEpisodeNav)
         btnPrevEp = findViewById(R.id.btnPrevEp)
         btnNextEp = findViewById(R.id.btnNextEp)
         tvEpisodeIndicator = findViewById(R.id.tvEpisodeIndicator)
 
+        cardStreamSettings = findViewById(R.id.cardStreamSettings)
         qualityContainer = findViewById(R.id.qualityContainer)
         subtitleContainer = findViewById(R.id.subtitleContainer)
         speedContainer = findViewById(R.id.speedContainer)
+
+        cardEpisodeGrid = findViewById(R.id.cardEpisodeGrid)
+        tvEpisodeGridTitle = findViewById(R.id.tvEpisodeGridTitle)
+        tvEpisodeGridSub = findViewById(R.id.tvEpisodeGridSub)
+        rvEpisodesGrid = findViewById(R.id.rvEpisodesGrid)
 
         updateTitleInfo()
 
@@ -118,21 +163,19 @@ class PlayerActivity : AppCompatActivity() {
             finish()
         }
 
-        // PiP Button Click
         btnPlayerPip.setOnClickListener {
             enterPictureInPicture()
         }
 
-        // Aspect Ratio Resize Toggle
         btnPlayerResize.setOnClickListener {
             cycleResizeMode()
         }
 
-        // Prev & Next Episode clicks
         btnPrevEp.setOnClickListener {
             if (currentEpisode > 1) {
                 currentEpisode--
                 updateTitleInfo()
+                episodeAdapter?.setSelected(currentEpisode)
                 loadStreamData()
             }
         }
@@ -140,20 +183,80 @@ class PlayerActivity : AppCompatActivity() {
         btnNextEp.setOnClickListener {
             currentEpisode++
             updateTitleInfo()
+            episodeAdapter?.setSelected(currentEpisode)
             loadStreamData()
         }
+
+        setupEpisodesGrid()
     }
 
     private fun updateTitleInfo() {
         tvPlayerTitle.text = movieTitle
-        if (currentEpisode > 0) {
-            tvPlayerSubtitle.text = "Season $currentSeason • Episode $currentEpisode"
-            tvEpisodeIndicator.text = "Episode $currentEpisode"
+
+        val isShortDrama = typeLabel.contains("Drama", ignoreCase = true) || typeLabel.contains("Short", ignoreCase = true)
+        if (isEpisodic && currentEpisode > 0) {
+            tvPlayerSubtitle.text = if (isShortDrama) {
+                "Drama Pendek • Episode $currentEpisode"
+            } else {
+                "Season $currentSeason • Episode $currentEpisode"
+            }
+            tvEpisodeIndicator.text = "Ep $currentEpisode"
             layoutEpisodeNav.visibility = View.VISIBLE
             btnPrevEp.visibility = if (currentEpisode > 1) View.VISIBLE else View.INVISIBLE
         } else {
-            tvPlayerSubtitle.text = "Film Layar Lebar • Subtitle Indonesia"
+            tvPlayerSubtitle.text = "Film Layar Lebar"
             layoutEpisodeNav.visibility = View.GONE
+        }
+    }
+
+    private fun setupEpisodesGrid() {
+        if (isEpisodic && (episodesList.isNotEmpty() || currentEpisode > 0)) {
+            // Generate episodes list if not passed from previous screen
+            if (episodesList.isEmpty()) {
+                val count = maxOf(currentEpisode, 10)
+                episodesList = ArrayList((1..count).toList())
+            }
+
+            cardEpisodeGrid.visibility = View.VISIBLE
+            tvEpisodeGridTitle.text = "Daftar Episode Season $currentSeason"
+            tvEpisodeGridSub.text = "Pilih episode untuk melanjutkan"
+
+            rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
+            episodeAdapter = EpisodeAdapter(episodesList, currentEpisode) { ep ->
+                currentEpisode = ep
+                updateTitleInfo()
+                loadStreamData()
+            }
+            rvEpisodesGrid.adapter = episodeAdapter
+        } else {
+            cardEpisodeGrid.visibility = View.GONE
+        }
+    }
+
+    private fun setupWatchlistState() {
+        val prefs = getSharedPreferences("movienas_prefs", Context.MODE_PRIVATE)
+        var isSaved = prefs.getBoolean("wl_$detailPath", false)
+
+        fun updateWatchlistUi() {
+            if (isSaved) {
+                ivWatchlistIcon.setColorFilter(Color.parseColor("#FBBF24"))
+                tvWatchlistText.text = "Tersimpan"
+                tvWatchlistText.setTextColor(Color.parseColor("#FBBF24"))
+            } else {
+                ivWatchlistIcon.setColorFilter(Color.WHITE)
+                tvWatchlistText.text = "Watchlist"
+                tvWatchlistText.setTextColor(Color.WHITE)
+            }
+        }
+
+        updateWatchlistUi()
+
+        btnPlayerWatchlist.setOnClickListener {
+            isSaved = !isSaved
+            prefs.edit().putBoolean("wl_$detailPath", isSaved).apply()
+            updateWatchlistUi()
+            val msg = if (isSaved) "Ditambahkan ke Watchlist" else "Dihapus dari Watchlist"
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -195,7 +298,7 @@ class PlayerActivity : AppCompatActivity() {
 
                     currentQuality = defaultQuality.quality
 
-                    // Default subtitle: Indonesian if available
+                    // Default subtitle: Indonesian if available, else first
                     val idSub = data.subtitles.find {
                         it.languageCode.equals("id", ignoreCase = true) ||
                                 it.languageName.contains("Indonesia", ignoreCase = true)
@@ -206,7 +309,7 @@ class PlayerActivity : AppCompatActivity() {
                     setupSubtitleButtons(data.subtitles)
                     playSelectedStream(defaultQuality)
                 } else {
-                    Toast.makeText(this@PlayerActivity, "Sumber video belum tersedia dari server", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PlayerActivity, "Sumber streaming video belum tersedia dari server", Toast.LENGTH_SHORT).show()
                 }
             }.onFailure { err ->
                 Toast.makeText(this@PlayerActivity, "Error: ${err.message}", Toast.LENGTH_LONG).show()
@@ -226,71 +329,114 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun setupQualityButtons(streams: List<VideoStream>) {
         qualityContainer.removeAllViews()
+        val inflater = LayoutInflater.from(this)
 
         for (s in streams) {
-            val btn = Button(this).apply {
-                val label = if (s.sizeFormatted.isNotEmpty()) "${s.quality} (${s.sizeFormatted})" else s.quality
-                text = label
-                textSize = 11f
-                val isSelected = s.quality == currentQuality
+            val pillView = inflater.inflate(R.layout.item_quality_pill, qualityContainer, false)
+            val ivIcon: ImageView = pillView.findViewById(R.id.ivQualityPlayIcon)
+            val tvRes: TextView = pillView.findViewById(R.id.tvQualityRes)
+            val tvSize: TextView = pillView.findViewById(R.id.tvQualitySize)
 
-                if (isSelected) {
-                    setBackgroundResource(R.drawable.bg_pill_active)
-                    setTextColor(Color.WHITE)
-                } else {
-                    setBackgroundResource(R.drawable.bg_pill_inactive)
-                    setTextColor(Color.parseColor("#94A3B8"))
-                }
+            tvRes.text = s.quality
 
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    resources.getDimensionPixelSize(android.R.dimen.app_icon_size) - 24
-                ).apply {
-                    setMargins(0, 0, 12, 0)
-                }
-                layoutParams = params
-
-                setOnClickListener {
-                    currentQuality = s.quality
-                    setupQualityButtons(streams)
-
-                    MoviePlayerManager.switchResolution(
-                        context = this@PlayerActivity,
-                        player = exoPlayer ?: return@setOnClickListener,
-                        newVideoUrl = s.url,
-                        subtitleUrl = currentSubtitleUrl
-                    )
-                    Toast.makeText(this@PlayerActivity, "Kualitas: ${s.quality}", Toast.LENGTH_SHORT).show()
-                }
+            if (s.sizeFormatted.isNotEmpty()) {
+                tvSize.visibility = View.VISIBLE
+                tvSize.text = s.sizeFormatted
+            } else {
+                tvSize.visibility = View.GONE
             }
-            qualityContainer.addView(btn)
+
+            val isSelected = s.quality == currentQuality
+            if (isSelected) {
+                pillView.setBackgroundResource(R.drawable.bg_pill_quality_active)
+                tvRes.setTextColor(Color.WHITE)
+                tvSize.setTextColor(Color.parseColor("#FFE4E6"))
+                ivIcon.setColorFilter(Color.WHITE)
+                pillView.elevation = dpToPx(4f).toFloat()
+            } else {
+                pillView.setBackgroundResource(R.drawable.bg_pill_quality_inactive)
+                tvRes.setTextColor(Color.parseColor("#E2E8F0"))
+                tvSize.setTextColor(Color.parseColor("#94A3B8"))
+                ivIcon.setColorFilter(Color.parseColor("#94A3B8"))
+                pillView.elevation = 0f
+            }
+
+            pillView.setOnClickListener {
+                currentQuality = s.quality
+                setupQualityButtons(streams)
+
+                MoviePlayerManager.switchResolution(
+                    context = this@PlayerActivity,
+                    player = exoPlayer ?: return@setOnClickListener,
+                    newVideoUrl = s.url,
+                    subtitleUrl = currentSubtitleUrl
+                )
+                Toast.makeText(this@PlayerActivity, "Kualitas: ${s.quality}", Toast.LENGTH_SHORT).show()
+            }
+
+            qualityContainer.addView(pillView)
         }
     }
 
     private fun setupSubtitleButtons(subtitles: List<SubtitleItem>) {
         subtitleContainer.removeAllViews()
+        val inflater = LayoutInflater.from(this)
 
-        // Button Mati / Off
-        val offBtn = Button(this).apply {
-            text = "Mati"
-            textSize = 11f
-            val isSelected = currentSubtitleUrl == null
-            if (isSelected) {
-                setBackgroundResource(R.drawable.bg_pill_active)
-                setTextColor(Color.WHITE)
-            } else {
-                setBackgroundResource(R.drawable.bg_pill_inactive)
-                setTextColor(Color.parseColor("#94A3B8"))
+        // Button: Mati (Off)
+        val offPill = inflater.inflate(R.layout.item_subtitle_pill, subtitleContainer, false)
+        val tvOffName: TextView = offPill.findViewById(R.id.tvSubtitleName)
+        tvOffName.text = "Mati"
+
+        val isOffSelected = currentSubtitleUrl == null
+        if (isOffSelected) {
+            offPill.setBackgroundResource(R.drawable.bg_pill_sub_active)
+            tvOffName.setTextColor(Color.parseColor("#FBBF24"))
+            tvOffName.typeface = Typeface.DEFAULT_BOLD
+        } else {
+            offPill.setBackgroundResource(R.drawable.bg_pill_sub_inactive)
+            tvOffName.setTextColor(Color.parseColor("#CBD5E1"))
+            tvOffName.typeface = Typeface.DEFAULT
+        }
+
+        offPill.setOnClickListener {
+            currentSubtitleUrl = null
+            setupSubtitleButtons(subtitles)
+
+            val currentStream = streamData?.streams?.find { it.quality == currentQuality }
+                ?: streamData?.streams?.firstOrNull()
+            if (currentStream != null) {
+                MoviePlayerManager.switchResolution(
+                    context = this@PlayerActivity,
+                    player = exoPlayer ?: return@setOnClickListener,
+                    newVideoUrl = currentStream.url,
+                    subtitleUrl = null
+                )
             }
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                resources.getDimensionPixelSize(android.R.dimen.app_icon_size) - 24
-            ).apply { setMargins(0, 0, 12, 0) }
-            layoutParams = params
+            Toast.makeText(this@PlayerActivity, "Subtitle dinonaktifkan", Toast.LENGTH_SHORT).show()
+        }
+        subtitleContainer.addView(offPill)
 
-            setOnClickListener {
-                currentSubtitleUrl = null
+        // Language Pills
+        for (sub in subtitles) {
+            val subPill = inflater.inflate(R.layout.item_subtitle_pill, subtitleContainer, false)
+            val tvSubName: TextView = subPill.findViewById(R.id.tvSubtitleName)
+            tvSubName.text = sub.languageName
+
+            val isSelected = sub.srtUrl == currentSubtitleUrl
+            if (isSelected) {
+                subPill.setBackgroundResource(R.drawable.bg_pill_sub_active)
+                tvSubName.setTextColor(Color.parseColor("#FBBF24"))
+                tvSubName.typeface = Typeface.DEFAULT_BOLD
+            } else {
+                subPill.setBackgroundResource(R.drawable.bg_pill_sub_inactive)
+                tvSubName.setTextColor(Color.parseColor("#CBD5E1"))
+                tvSubName.typeface = Typeface.DEFAULT
+            }
+
+            subPill.setOnClickListener {
+                currentSubtitleUrl = sub.srtUrl
                 setupSubtitleButtons(subtitles)
+
                 val currentStream = streamData?.streams?.find { it.quality == currentQuality }
                     ?: streamData?.streams?.firstOrNull()
                 if (currentStream != null) {
@@ -298,88 +444,43 @@ class PlayerActivity : AppCompatActivity() {
                         context = this@PlayerActivity,
                         player = exoPlayer ?: return@setOnClickListener,
                         newVideoUrl = currentStream.url,
-                        subtitleUrl = null
+                        subtitleUrl = sub.srtUrl
                     )
                 }
-                Toast.makeText(this@PlayerActivity, "Subtitle dinonaktifkan", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PlayerActivity, "Subtitle: ${sub.languageName}", Toast.LENGTH_SHORT).show()
             }
-        }
-        subtitleContainer.addView(offBtn)
-
-        // Subtitle Language Buttons
-        for (sub in subtitles) {
-            val btn = Button(this).apply {
-                text = sub.languageName
-                textSize = 11f
-                val isSelected = sub.srtUrl == currentSubtitleUrl
-
-                if (isSelected) {
-                    setBackgroundResource(R.drawable.bg_pill_active)
-                    setTextColor(Color.WHITE)
-                } else {
-                    setBackgroundResource(R.drawable.bg_pill_inactive)
-                    setTextColor(Color.parseColor("#94A3B8"))
-                }
-
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    resources.getDimensionPixelSize(android.R.dimen.app_icon_size) - 24
-                ).apply { setMargins(0, 0, 12, 0) }
-                layoutParams = params
-
-                setOnClickListener {
-                    currentSubtitleUrl = sub.srtUrl
-                    setupSubtitleButtons(subtitles)
-
-                    val currentStream = streamData?.streams?.find { it.quality == currentQuality }
-                        ?: streamData?.streams?.firstOrNull()
-                    if (currentStream != null) {
-                        MoviePlayerManager.switchResolution(
-                            context = this@PlayerActivity,
-                            player = exoPlayer ?: return@setOnClickListener,
-                            newVideoUrl = currentStream.url,
-                            subtitleUrl = sub.srtUrl
-                        )
-                    }
-                    Toast.makeText(this@PlayerActivity, "Subtitle: ${sub.languageName}", Toast.LENGTH_SHORT).show()
-                }
-            }
-            subtitleContainer.addView(btn)
+            subtitleContainer.addView(subPill)
         }
     }
 
     private fun setupSpeedControls() {
         speedContainer.removeAllViews()
+        val inflater = LayoutInflater.from(this)
         val speeds = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 
         for (spd in speeds) {
-            val btn = Button(this).apply {
-                text = "${spd}x"
-                textSize = 11f
-                val isSelected = spd == currentSpeed
+            val speedPill = inflater.inflate(R.layout.item_subtitle_pill, speedContainer, false)
+            val tvSpeed: TextView = speedPill.findViewById(R.id.tvSubtitleName)
+            tvSpeed.text = "${spd}x"
 
-                if (isSelected) {
-                    setBackgroundResource(R.drawable.bg_pill_active)
-                    setTextColor(Color.WHITE)
-                } else {
-                    setBackgroundResource(R.drawable.bg_pill_inactive)
-                    setTextColor(Color.parseColor("#94A3B8"))
-                }
-
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    resources.getDimensionPixelSize(android.R.dimen.app_icon_size) - 24
-                ).apply { setMargins(0, 0, 12, 0) }
-                layoutParams = params
-
-                setOnClickListener {
-                    currentSpeed = spd
-                    exoPlayer?.playbackParameters = PlaybackParameters(spd)
-                    setupSpeedControls()
-                    Toast.makeText(this@PlayerActivity, "Kecepatan: ${spd}x", Toast.LENGTH_SHORT).show()
-                }
+            val isSelected = spd == currentSpeed
+            if (isSelected) {
+                speedPill.setBackgroundResource(R.drawable.bg_pill_quality_active)
+                tvSpeed.setTextColor(Color.WHITE)
+                tvSpeed.typeface = Typeface.DEFAULT_BOLD
+            } else {
+                speedPill.setBackgroundResource(R.drawable.bg_pill_quality_inactive)
+                tvSpeed.setTextColor(Color.parseColor("#CBD5E1"))
+                tvSpeed.typeface = Typeface.DEFAULT
             }
-            speedContainer.addView(btn)
+
+            speedPill.setOnClickListener {
+                currentSpeed = spd
+                exoPlayer?.playbackParameters = PlaybackParameters(spd)
+                setupSpeedControls()
+                Toast.makeText(this@PlayerActivity, "Kecepatan: ${spd}x", Toast.LENGTH_SHORT).show()
+            }
+            speedContainer.addView(speedPill)
         }
     }
 
@@ -391,6 +492,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         currentResizeMode = nextMode
         playerView.resizeMode = nextMode
+        tvResizeLabel.text = modeName
         Toast.makeText(this, "Rasio Layar: $modeName", Toast.LENGTH_SHORT).show()
     }
 
@@ -410,12 +512,77 @@ class PlayerActivity : AppCompatActivity() {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         if (isInPictureInPictureMode) {
             playerTopBar.visibility = View.GONE
-            playerBottomBar.visibility = View.GONE
+            playerScrollView.visibility = View.GONE
             playerView.useController = false
+
+            val params = RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT
+            )
+            playerCardContainer.layoutParams = params
+            playerCardContainer.radius = 0f
         } else {
-            playerTopBar.visibility = View.VISIBLE
-            playerBottomBar.visibility = View.VISIBLE
             playerView.useController = true
+            applyOrientationLayout(resources.configuration.orientation)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyOrientationLayout(newConfig.orientation)
+    }
+
+    private fun applyOrientationLayout(orientation: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
+            return
+        }
+
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            // Fullscreen Landscape: hide top bar and scroll content, expand player to fill screen
+            playerTopBar.visibility = View.GONE
+            playerScrollView.visibility = View.GONE
+
+            val params = RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT
+            )
+            params.setMargins(0, 0, 0, 0)
+            playerCardContainer.layoutParams = params
+            playerCardContainer.radius = 0f
+
+            window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    )
+        } else {
+            // Portrait: restore top bar, 16:9 player card, and scrollable controls
+            playerTopBar.visibility = View.VISIBLE
+            playerScrollView.visibility = View.VISIBLE
+
+            val heightPx = dpToPx(225f)
+            val marginHorizPx = dpToPx(12f)
+            val marginTopPx = dpToPx(6f)
+
+            val params = RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                heightPx
+            ).apply {
+                addRule(RelativeLayout.BELOW, R.id.playerTopBar)
+                setMargins(marginHorizPx, marginTopPx, marginHorizPx, 0)
+            }
+            playerCardContainer.layoutParams = params
+            playerCardContainer.radius = dpToPx(14f).toFloat()
+
+            val scrollParams = RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT
+            ).apply {
+                addRule(RelativeLayout.BELOW, R.id.playerCardContainer)
+            }
+            playerScrollView.layoutParams = scrollParams
+
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
         }
     }
 

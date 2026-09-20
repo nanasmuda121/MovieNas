@@ -155,12 +155,19 @@ class DetailActivity : AppCompatActivity() {
 
     private fun startPlayer(season: Int, episode: Int) {
         val detail = movieDetail ?: return
+        val episodesList = ArrayList<Int>()
+        detail.seasons.firstOrNull()?.allEpisodes?.let { episodesList.addAll(it) }
+
         val intent = Intent(this, PlayerActivity::class.java).apply {
             putExtra("EXTRA_DETAIL_PATH", detail.detailPath)
             putExtra("EXTRA_SUBJECT_ID", detail.subjectId)
             putExtra("EXTRA_TITLE", detail.title)
+            putExtra("EXTRA_COVER_URL", detail.coverUrl)
+            putExtra("EXTRA_TYPE_LABEL", detail.typeLabel)
             putExtra("EXTRA_SEASON", season)
             putExtra("EXTRA_EPISODE", episode)
+            putExtra("EXTRA_IS_EPISODIC", detail.isEpisodic)
+            putIntegerArrayListExtra("EXTRA_EPISODES_LIST", episodesList)
         }
         startActivity(intent)
     }

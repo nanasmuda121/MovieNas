@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.movienas.R
@@ -15,7 +16,9 @@ class EpisodeAdapter(
 ) : RecyclerView.Adapter<EpisodeAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val layoutEpisodeItem: LinearLayout = view.findViewById(R.id.layoutEpisodeItem)
         val tvEpisodeNumber: TextView = view.findViewById(R.id.tvEpisodeNumber)
+        val tvEpisodeLabel: TextView = view.findViewById(R.id.tvEpisodeLabel)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -26,15 +29,18 @@ class EpisodeAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val ep = episodes[position]
-        holder.tvEpisodeNumber.text = "Ep $ep"
+        holder.tvEpisodeNumber.text = "$ep"
+        holder.tvEpisodeLabel.text = "Episode"
 
         val isSelected = ep == selectedEpisode
         if (isSelected) {
-            holder.tvEpisodeNumber.setBackgroundResource(R.drawable.bg_button_red)
+            holder.layoutEpisodeItem.setBackgroundResource(R.drawable.bg_ep_card_active)
             holder.tvEpisodeNumber.setTextColor(Color.WHITE)
+            holder.tvEpisodeLabel.setTextColor(Color.WHITE)
         } else {
-            holder.tvEpisodeNumber.setBackgroundResource(R.drawable.bg_card_rounded)
-            holder.tvEpisodeNumber.setTextColor(Color.parseColor("#94A3B8"))
+            holder.layoutEpisodeItem.setBackgroundResource(R.drawable.bg_ep_card_inactive)
+            holder.tvEpisodeNumber.setTextColor(Color.parseColor("#E2E8F0"))
+            holder.tvEpisodeLabel.setTextColor(Color.parseColor("#64748B"))
         }
 
         holder.itemView.setOnClickListener {
