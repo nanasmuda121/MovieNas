@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Android Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -30,32 +30,33 @@ jobs:
         working-directory: ./android
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Build Release APK
         working-directory: ./android
-        run: gradle assembleDebug --stacktrace
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MovieNas-Debug-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: MovieNas-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0-build-${{ github.run_number }}
-          name: MovieNas Native Android v1.0.0 (Build ${{ github.run_number }})
+          tag_name: v1.0.0-release-${{ github.run_number }}
+          name: MovieNas Native Android v1.0.0 (Release Build #${{ github.run_number }})
           body: |
-            ### 🎬 MovieNas Native Android APK
-            Aplikasi Android streaming film, serial TV, dan drama pendek.
+            ### 🎬 MovieNas Native Android Release APK
+            Aplikasi Android Native streaming film, serial TV, dan drama pendek.
             
+            - **Build Type:** Release (Ringan, Cepat, Tanpa Obfuscation)
             - **Bypass CDN:** Menggunakan header referer resmi, streaming langsung dari CDN tanpa server proxy!
             - **Player:** AndroidX Media3 / ExoPlayer dengan multi-resolusi (360p, 480p, 720p, 1080p).
             - **Commit:** ${{ github.sha }}
             
             Unduh file `.apk` di bawah dan install langsung di HP Android Anda!
           files: |
-            android/app/build/outputs/apk/debug/*.apk
+            android/app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
