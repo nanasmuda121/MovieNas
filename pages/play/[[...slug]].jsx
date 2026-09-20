@@ -21,7 +21,7 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
     null;
 
   const [currentQuality, setCurrentQuality] = useState(defaultStream?.quality || '');
-  const [currentSrc, setCurrentSrc] = useState(defaultStream?.proxyUrl || defaultStream?.url || '');
+  const [currentSrc, setCurrentSrc] = useState(defaultStream?.url || '');
   const [saved, setSaved] = useState(false);
 
   // Subtitles
@@ -222,6 +222,7 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                     controls
                     playsInline
                     preload="metadata"
+                    referrerPolicy="no-referrer"
                     src={currentSrc}
                   >
                     {subtitles.map((sub, idx) => (
@@ -272,7 +273,7 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                     <div className="quality-pills-wrap">
                       {streamList.map((s, idx) => {
                         const isCurrent = (currentQuality ? s.quality === currentQuality : idx === 0);
-                        const streamUrl = s.proxyUrl || s.url;
+                        const streamUrl = s.url;
                         return (
                           <button
                             key={idx}
@@ -340,6 +341,7 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                   controls
                   playsInline
                   preload="metadata"
+                  referrerPolicy="no-referrer"
                   src={currentSrc}
                 >
                   {subtitles.map((sub, idx) => (
@@ -367,7 +369,7 @@ export default function PlayerPage({ stream, detail, episode: initialEp, season:
                   <div className="quality-pills-wrap">
                     {streamList.map((s, idx) => {
                       const isCurrent = (currentQuality ? s.quality === currentQuality : idx === 0);
-                      const streamUrl = s.proxyUrl || s.url;
+                      const streamUrl = s.url;
                       return (
                         <button
                           key={idx}
