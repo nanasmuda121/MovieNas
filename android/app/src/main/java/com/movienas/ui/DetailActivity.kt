@@ -182,7 +182,6 @@ class DetailActivity : AppCompatActivity() {
         if (allEpisodes.size <= chunkSize) {
             scrollDetailEpisodeRanges.visibility = View.GONE
             rvEpisodes.layoutManager = GridLayoutManager(this, 5)
-            rvEpisodes.setHasFixedSize(true)
             val episodeAdapter = EpisodeAdapter(allEpisodes, selectedEpisode) { clickedEp ->
                 if (!canClick()) return@EpisodeAdapter
                 selectedEpisode = clickedEp
@@ -200,7 +199,6 @@ class DetailActivity : AppCompatActivity() {
 
         val currentChunk = chunks[activeChunkIndex]
         rvEpisodes.layoutManager = GridLayoutManager(this, 5)
-        rvEpisodes.setHasFixedSize(true)
         val episodeAdapter = EpisodeAdapter(currentChunk, selectedEpisode) { clickedEp ->
             if (!canClick()) return@EpisodeAdapter
             selectedEpisode = clickedEp

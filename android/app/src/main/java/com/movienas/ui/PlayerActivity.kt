@@ -432,7 +432,6 @@ class PlayerActivity : AppCompatActivity() {
             if (episodesList.size <= chunkSize) {
                 scrollPlayerEpisodeRanges.visibility = View.GONE
                 rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
-                rvEpisodesGrid.setHasFixedSize(true)
                 episodeAdapter = EpisodeAdapter(episodesList, currentEpisode) { ep ->
                     if (!canClick()) return@EpisodeAdapter
                     currentEpisode = ep
@@ -448,7 +447,6 @@ class PlayerActivity : AppCompatActivity() {
 
                 val currentChunk = episodeChunks[activeChunkIndex]
                 rvEpisodesGrid.layoutManager = GridLayoutManager(this, 4)
-                rvEpisodesGrid.setHasFixedSize(true)
                 episodeAdapter = EpisodeAdapter(currentChunk, currentEpisode) { ep ->
                     if (!canClick()) return@EpisodeAdapter
                     currentEpisode = ep
